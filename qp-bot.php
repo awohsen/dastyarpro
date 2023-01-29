@@ -1,6 +1,5 @@
 <?php
 
-use React\Cache\ArrayCache;
 use Zanzara\Config;
 use Zanzara\Context;
 use Zanzara\Telegram\Type\CallbackQuery;
@@ -13,6 +12,7 @@ use Monolog\Logger;
 
 
 require __DIR__.'/vendor/autoload.php';
+require __DIR__.'/ArrayCache.php';
 
 $config = new Config();
 
