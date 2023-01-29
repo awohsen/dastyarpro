@@ -100,7 +100,7 @@ $bot->onCommand('start', function (Context $ctx) {
     }
 });
 $bot->onCommand('startad {AdNum}', function (Context $ctx, $AdNum) {
-    $Admins = $ctx->get('gData') ?? [];
+    $Admins = $ctx->get('gData');
     $uId = $ctx->getEffectiveUser()->getId();
     if (isset($Admins[$uId]['Ads']['c'][$AdNum])) {
         send2Channels($ctx, $Admins[$uId]['Ads']['c'][$AdNum], $AdNum);
@@ -118,7 +118,7 @@ $bot->onCommand('startad {AdNum}', function (Context $ctx, $AdNum) {
     }
 });
 $bot->onCommand('stopad {AdNum}', function (Context $ctx, $AdNum) {
-    $Admins = $ctx->get('gData') ?? [];
+    $Admins = $ctx->get('gData');
     $uId = $ctx->getEffectiveUser()->getId();
     if (isset($Admins[$uId]['Ads']['o'][$AdNum])) {
         del2Channels($ctx, $Admins[$uId]['Ads']['o'][$AdNum]);
@@ -138,7 +138,7 @@ $bot->onCommand('stopad {AdNum}', function (Context $ctx, $AdNum) {
 $bot->onCbQueryData(['hRunningAds', 'hChannels', 'hAdmins', 'hLists'], function (Context $ctx) {
     $data = $ctx->getCallbackQuery()->getData();
     $uId = $ctx->getEffectiveUser()->getId();
-    $Admins = $ctx->get('gData') ?? [];
+    $Admins = $ctx->get('gData');
     $ctx->answerCallbackQuery();
 
     switch ($data) {
@@ -207,7 +207,6 @@ $bot->onCbQueryData(['hRunningAds', 'hChannels', 'hAdmins', 'hLists'], function 
             nextStep('hChannels', $ctx);
             break;
         case 'hLists':
-            $ctx->answerCallbackQuery();
             $lists = $Admins[$uId]['Lists'];
 
             $IK = BuildInlineKeyboard(array_keys($lists), array_keys($lists), 2);
@@ -275,7 +274,7 @@ function hLists(Context $ctx)
                 break;
             default:
                 $uId = $ctx->getEffectiveUser()->getId();
-                $Admins = $ctx->get('gData') ?? [];
+                $Admins = $ctx->get('gData');
                 $lists = $Admins[$uId]['Lists'];
                 if (in_array($data, array_keys($lists))) {
                     setUserData($ctx, 'list', $data);
@@ -308,7 +307,7 @@ function hRunningAds(Context $ctx)
                 break;
             case 'hDelAd':
                 if (isset($ctx->get('gData')[$uId]['Ads']['c']) && count($ctx->get('gData')[$uId]['Ads']['c']) >= 1) {
-                    $Admins = $ctx->get('gData') ?? [];
+                    $Admins = $ctx->get('gData');
                     $Admins[$uId]['Ads']['c'] = [];
                     $ctx->setGlobalDataItem('data', $Admins);
 
@@ -419,7 +418,7 @@ function hNewAdName(Context $ctx)
 
             setUserData($ctx, 'Ad', $Ad);
 
-            $Admins = $ctx->get('gData') ?? [];
+            $Admins = $ctx->get('gData');
 
             $lists = [];
             foreach ($Admins[$uId]['Channels'] as $key => $list) {
@@ -549,7 +548,7 @@ function hNewAdGet(Context $ctx)
         $Ad['send']['chatId'] = $_ENV['ADSCHANNEL'];
         deleteUserData($ctx, 'Ad');
 
-        $Admins = $ctx->get('gData') ?? [];
+        $Admins = $ctx->get('gData');
         $uId = $ctx->getEffectiveUser()->getId();
         $Admins[$uId]['Ads']['c'][$r = rand(11111, 99999)] = $Ad;
         setUserData($ctx, 'AdNum', $r);
@@ -639,7 +638,7 @@ function AdPanel(Context $ctx)
 {
     if ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
         if (isset($ctx->get('uData')['AdNum'])) {
-            $Admins = $ctx->get('gData') ?? [];
+            $Admins = $ctx->get('gData');
             $uId = $ctx->getEffectiveUser()->getId();
             $AdNum = $ctx->get('uData')['AdNum'];
 
@@ -853,7 +852,7 @@ function hNewList(Context $ctx)
                 $text = mb_substr($text, '0', 25, mb_detect_encoding($text));
                 $text .= '...';
             }
-            $Admins = $ctx->get('gData') ?? [];
+            $Admins = $ctx->get('gData');
             $uId = $ctx->getEffectiveUser()->getId();
 
             if (!isset($Admins[$uId]['Lists'][$text])) {
@@ -901,7 +900,7 @@ function hChannels(Context $ctx)
                 hMain($ctx);
                 break;
             default:
-                $Admins = $ctx->get('gData') ?? [];
+                $Admins = $ctx->get('gData');
                 $Channels = $Admins[$uId]['Channels'];
 
                 if (in_array($data, array_keys($Channels))) {
@@ -966,7 +965,7 @@ function getChatMember($ChatId, $UserID, Context $ctx)
                 if (in_array($result->getStatus(), ['creator', 'administrator'])) {
                     $ctx->getChat($ChatId)->then(function (Chat $result) use ($ctx, $ChatId) {
                         if ($result->getType() == 'channel') {
-                            $Admins = $ctx->get('gData') ?? [];
+                            $Admins = $ctx->get('gData');
                             $uId = $ctx->getEffectiveUser()->getId();
                             $title = $result->getTitle();
 
@@ -1028,7 +1027,7 @@ function getChatMember($ChatId, $UserID, Context $ctx)
 function hAdd2List(Context $ctx)
 {
     if ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
-        $Admins = $ctx->get('gData') ?? [];
+        $Admins = $ctx->get('gData');
         $uId = $ctx->getEffectiveUser()->getId();
 
         if (isset($ctx->get('uData')['lists'])) {
@@ -1099,6 +1098,7 @@ function hAdd2List(Context $ctx)
 
 $bot->middleware(function (Context $ctx, $next) use ($managers) {
     $ctx->getGlobalDataItem('data')->then(function ($gData) use ($ctx, $next, $managers) {
+        if (!is_array($gData)) $gData = [];
         $ctx->getUserDataItem('data')->then(function ($uData) use ($ctx, $next, $managers, $gData) {
             $uData['manager'] = in_array($ctx->getEffectiveUser()->getId(), $managers);
             if (!$uData['manager'] && !in_array($uData['owner'], $managers)) return;
