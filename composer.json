@@ -1,7 +1,15 @@
 {
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/awohsen/zanzara"
+    }
+  ],
   "require": {
-    "badfarm/zanzara": "^0.8.0",
-    "vlucas/phpdotenv": "^5.2",
-    "monolog/monolog": "^2.1"
+    "php": "^7.3 || ^8.0",
+    "ext-json": "*",
+    "badfarm/zanzara": "dev-develop",
+    "vlucas/phpdotenv": "^5.5",
+    "monolog/monolog": "^2.8"
   }
 }

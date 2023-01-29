@@ -338,8 +338,7 @@ function hRunningAds(Context $ctx)
                             ]]]);
                     }
                     nextStep('hRunningAds', $ctx);
-
-                    return true;
+                    return;
                 }
 
                 $ctx->answerCallbackQuery(['text' => '❎ تبلیغی متوقف شده ای برای حذف وجود ندارد!']);
@@ -473,9 +472,9 @@ function hNewAd(Context $ctx){
             $listKey = array_keys($lists);
             foreach ($listKey as $key => $list) {
                 if ($lists[$list]['sel'] === true){
-                    $show[$key] = '✔️'.$listKey[$key];
+                    $show[$key] = '✔️'. $list;
                 }else{
-                    $show[$key] = $listKey[$key];
+                    $show[$key] = $list;
                 }
             }
             return $show;
@@ -488,7 +487,7 @@ function hNewAd(Context $ctx){
 
             $Ad = $ctx->get('uData')['Ad'];
 
-            foreach ($listKey as $key => $list) {
+            foreach ($listKey as $list) {
                 if ($lists[$list]['sel'] === true){
                     if (!in_array($lists[$list]['id'],$Ad['Channels'] ?? []))
                         $Ad['Channels'][$lists[$list]['id']]['msg'] = null;
@@ -518,9 +517,7 @@ function hNewAd(Context $ctx){
             hMain($ctx);
         }else{
             if (in_array($data,array_keys($lists))){
-                if ($lists[$data]['sel'] == false) $lists[$data]['sel'] = true;
-                else $lists[$data]['sel'] = false;
-
+                $lists[$data]['sel'] = !$lists[$data]['sel'];
                 $show = $show($lists);
 
                 $IK = BuildInlineKeyboard(array_values($show),array_keys($lists),2);
@@ -821,13 +818,13 @@ function send2Channels(Context $ctx, $Ad, $AdNum){
             }
             break;
     }
-};
+}
 function del2Channels(Context $ctx, $Ad) {
     $Channels = array_keys($Ad['Channels']);
     foreach ($Channels as $Channel) {
         $ctx->deleteMessage($Channel, $Ad['Channels'][$Channel]);
     }
-};
+}
 
 
 function hNewList(Context $ctx)
@@ -1032,9 +1029,9 @@ function hAdd2List(Context $ctx)
             $listKey = array_keys($lists);
             foreach ($listKey as $key => $list) {
                 if ($lists[$list]['sel'] === true){
-                    $show[$key] = '✔️'.$listKey[$key];
+                    $show[$key] = '✔️'. $list;
                 }else{
-                    $show[$key] = $listKey[$key];
+                    $show[$key] = $list;
                 }
             }
             return $show;
@@ -1047,7 +1044,7 @@ function hAdd2List(Context $ctx)
 
             $Channel = $ctx->get('uData')['Channel'];
 
-            foreach ($listKey as $key => $list) {
+            foreach ($listKey as $list) {
                 if ($lists[$list]['sel'] === true){
                     if (!in_array($Channel,$Admins[$uId]['Lists'][$list]['Channels'] ?? []))
                         $Admins[$uId]['Lists'][$list]['Channels'][] = $Channel;
@@ -1066,8 +1063,7 @@ function hAdd2List(Context $ctx)
             }
         }else{
             if (in_array($data,array_keys($lists))){
-                if ($lists[$data]['sel'] == false) $lists[$data]['sel'] = true;
-                else $lists[$data]['sel'] = false;
+                $lists[$data]['sel'] = !$lists[$data]['sel'];
 
                 $show = $show($lists);
 
@@ -1124,7 +1120,8 @@ $bot->getLoop()->addPeriodicTimer(5,function () use ($cache){
 });
 $bot->run();
 
-function BuildInlineKeyboard($text = [], $cb = [], int $sort = 1) {
+function BuildInlineKeyboard($text = [], $cb = [], int $sort = 1): array
+{
     $Line = 0;
     $count_added = 0;
     $keyboard = [];
