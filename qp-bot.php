@@ -40,6 +40,7 @@ $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
 $bot = new Zanzara($_ENV['BOT_TOKEN'], $config);
+$managers = explode(',', $_ENV['ADMINS']);
 
 $bot->onUpdate(function (Context $ctx) {
     if (isset($ctx->get('uData')['step'])) {
@@ -58,7 +59,7 @@ $bot->onMessage(function (Context $ctx) {
                 $Admins = $ctx->get('gData');
                 $Admins[$uId]['Channels'][$channel]['discuss'] = $ctx->getEffectiveChat()->getId();
                 $Admins['discuss'][$ctx->geteffectiveChat()->getId()][$channel] = $uId;
-                $ctx->setGlobalDataItem('Admins', $Admins);
+                $ctx->setGlobalDataItem('data', $Admins);
 
                 $title = $Admins[$uId]['Channels'][$channel]['name'];
                 $ctx->sendMessage("تنظیم گروه کامنت برای کانال '$title' موفقیت آمیز بود!", ['chat_id' => $uId]);
@@ -85,7 +86,6 @@ $bot->onMessage(function (Context $ctx) {
 $bot->onCommand('start', function (Context $ctx) {
     endConversation($ctx);
     if ($ctx->getEffectiveChat()->getType() === 'private') {
-        if ($ctx->get('uData')['admin'] === true) {
             if ($ctx->get('uData')['rank'] === 'headAdmin') {
                 $opens = count($ctx->get('gData')[$ctx->getEffectiveUser()->getId()]['Ads']['o'] ?? []);
                 $text = '🔆 سلام مالک گرامی به پنل کاربری خوش آمدید.';
@@ -97,7 +97,6 @@ $bot->onCommand('start', function (Context $ctx) {
 
                 $ctx->sendMessage($text, $opt);
             }
-        }
     }
 });
 $bot->onCommand('startad {AdNum}', function (Context $ctx, $AdNum) {
@@ -108,7 +107,7 @@ $bot->onCommand('startad {AdNum}', function (Context $ctx, $AdNum) {
 
         $Admins[$uId]['Ads']['o'][$AdNum] = $Admins[$uId]['Ads']['c'][$AdNum];
         unset($Admins[$uId]['Ads']['c'][$AdNum]);
-        $ctx->setGlobalDataItem('Admins', $Admins);
+        $ctx->setGlobalDataItem('data', $Admins);
 
         $ctx->sendMessage('✅  بنظر تبلیغ شما  ارسال شده است!
 
@@ -126,7 +125,7 @@ $bot->onCommand('stopad {AdNum}', function (Context $ctx, $AdNum) {
 
         $Admins[$uId]['Ads']['c'][$AdNum] = $Admins[$uId]['Ads']['o'][$AdNum];
         unset($Admins[$uId]['Ads']['o'][$AdNum]);
-        $ctx->setGlobalDataItem('Admins', $Admins);
+        $ctx->setGlobalDataItem('data', $Admins);
 
         $ctx->sendMessage('✅  بنظر تبلیغ شما از تمام کانالها حذف شده است!
         
@@ -311,7 +310,7 @@ function hRunningAds(Context $ctx)
                 if (isset($ctx->get('gData')[$uId]['Ads']['c']) && count($ctx->get('gData')[$uId]['Ads']['c']) >= 1) {
                     $Admins = $ctx->get('gData') ?? [];
                     $Admins[$uId]['Ads']['c'] = [];
-                    $ctx->setGlobalDataItem('Admins', $Admins);
+                    $ctx->setGlobalDataItem('data', $Admins);
 
                     $ctx->answerCallbackQuery(['text' => '✅ تمامی تبلیغ های متوقف شده شما پاک شدند!', 'show_alert' => true]);
 
@@ -555,7 +554,7 @@ function hNewAdGet(Context $ctx)
         $Admins[$uId]['Ads']['c'][$r = rand(11111, 99999)] = $Ad;
         setUserData($ctx, 'AdNum', $r);
 
-        $ctx->setGlobalDataItem('Admins', $Admins);
+        $ctx->setGlobalDataItem('data', $Admins);
         $ctx->sendMessage('☑️ تبلیغ شما آماده ارسال است!
 
 ⚡️ با دکمه شروع تبلیغ مربوطه را در کانال های خود ارسال کنید. 
@@ -651,7 +650,7 @@ function AdPanel(Context $ctx)
 
                         $Admins[$uId]['Ads']['o'][$AdNum] = $Admins[$uId]['Ads']['c'][$AdNum];
                         unset($Admins[$uId]['Ads']['c'][$AdNum]);
-                        $ctx->setGlobalDataItem('Admins', $Admins);
+                        $ctx->setGlobalDataItem('data', $Admins);
 
 
                         $ctx->editMessageText('✅  بنظر تبلیغ شما  ارسال شده است!
@@ -689,7 +688,7 @@ function AdPanel(Context $ctx)
                         send2Channels($ctx, $Admins[$uId]['Ads']['o'][$AdNum], $AdNum);
 
                         unset($Admins[$uId]['Ads']['c'][$AdNum]);
-                        $ctx->setGlobalDataItem('Admins', $Admins);
+                        $ctx->setGlobalDataItem('data', $Admins);
 
                         $ctx->editMessageText('✅  بنظر تبلیغ شما  ارسال شده است!
 
@@ -714,7 +713,7 @@ function AdPanel(Context $ctx)
 
                         $Admins[$uId]['Ads']['c'][$AdNum] = $Admins[$uId]['Ads']['o'][$AdNum];
                         unset($Admins[$uId]['Ads']['o'][$AdNum]);
-                        $ctx->setGlobalDataItem('Admins', $Admins);
+                        $ctx->setGlobalDataItem('data', $Admins);
 
                         $ctx->editMessageText('✅  بنظر تبلیغ شما از تمام کانالها حذف شده است!
 
@@ -750,7 +749,7 @@ function AdPanel(Context $ctx)
                     if (isset($Admins[$uId]['Ads']['c'][$AdNum])) {
                         del2Channels($ctx, $Admins[$uId]['Ads']['c'][$AdNum]);
                         unset($Admins[$uId]['Ads']['o'][$AdNum]);
-                        $ctx->setGlobalDataItem('Admins', $Admins);
+                        $ctx->setGlobalDataItem('data', $Admins);
 
                         $ctx->editMessageText('✅  بنظر تبلیغ شما از تمام کانالها حذف شده است!
 
@@ -807,10 +806,10 @@ function send2Channels(Context $ctx, $Ad, $AdNum)
                 $ctx->forwardMessage($Channel, $Ad['send']['chatId'], $Ad['send']['msg'])->then(
                     function ($id) use ($ctx, $Channel, $AdNum) {
                         $uId = $ctx->getEffectiveUser()->getId();
-                        $ctx->getGlobalDataItem('Admins')->then(function ($Admins) use ($ctx, $uId, $AdNum, $Channel, $id) {
+                        $ctx->getGlobalDataItem('data')->then(function ($Admins) use ($ctx, $uId, $AdNum, $Channel, $id) {
                             $Admins[$uId]['Ads']['o'][$AdNum]['Channels'][$Channel] = $id->getMessageId();
                             unset($Admins[$uId]['Ads']['c'][$AdNum]);
-                            $ctx->setGlobalDataItem('Admins', $Admins);
+                            $ctx->setGlobalDataItem('data', $Admins);
                         });
                     }
                 );
@@ -821,9 +820,9 @@ function send2Channels(Context $ctx, $Ad, $AdNum)
                 $ctx->copyMessage($Channel, $Ad['send']['chatId'], $Ad['send']['msg'])->then(
                     function ($id) use ($Ad, $Channel, $AdNum, $ctx) {
                         $uId = $ctx->getEffectiveUser()->getId();
-                        $ctx->getGlobalDataItem('Admins')->then(function ($Admins) use ($ctx, $uId, $AdNum, $Channel, $id) {
+                        $ctx->getGlobalDataItem('data')->then(function ($Admins) use ($ctx, $uId, $AdNum, $Channel, $id) {
                             $Admins[$uId]['Ads']['o'][$AdNum]['Channels'][$Channel] = $id->getMessageId();
-                            $ctx->setGlobalDataItem('Admins', $Admins);
+                            $ctx->setGlobalDataItem('data', $Admins);
                         });
                     }
                 );
@@ -859,7 +858,7 @@ function hNewList(Context $ctx)
 
             if (!isset($Admins[$uId]['Lists'][$text])) {
                 $Admins[$uId]['Lists'][$text]['Channels'] = [];
-                $ctx->setGlobalDataItem('Admins', $Admins);
+                $ctx->setGlobalDataItem('data', $Admins);
 
                 $ctx->sendMessage("✅ دسته ی '$text' با موفقیت ایجاد شد!");
                 hMain($ctx, false);
@@ -935,7 +934,7 @@ function hChannels(Context $ctx)
 
 ➕با دکمه زیر چنل های خود را اضافه کنید.',
                         ['reply_markup' => ['inline_keyboard' => $IK]]);
-                    $ctx->setGlobalDataItem('Admins', $Admins);
+                    $ctx->setGlobalDataItem('data', $Admins);
                 }
         }
     }
@@ -978,7 +977,7 @@ function getChatMember($ChatId, $UserID, Context $ctx)
 
                             $Admins[$uId]['Channels'][$ChatId]['name'] = $title;
                             if ($result->getUsername() !== null) $Admins[$uId]['Channels'][$ChatId]['username'] = $result->getUsername();
-                            $ctx->setGlobalDataItem('Admins', $Admins);
+                            $ctx->setGlobalDataItem('data', $Admins);
                             setUserData($ctx, 'Channel', $ChatId);
 
                             $ctx->sendMessage("✅ کانال '$title' با موفقیت اضافه شد!
@@ -1072,7 +1071,7 @@ function hAdd2List(Context $ctx)
             if ($count < 1)
                 $ctx->answerCallbackQuery(['text' => '⚠️ حداقل یکی را انتخاب کنید!']);
             else {
-                $ctx->setGlobalDataItem('Admins', $Admins);
+                $ctx->setGlobalDataItem('data', $Admins);
                 deleteUserData($ctx, 'lists');
                 deleteUserData($ctx, 'Channel');
 
@@ -1098,23 +1097,16 @@ function hAdd2List(Context $ctx)
 
 }
 
-$bot->middleware(function (Context $ctx, $next) {
-    $ctx->getGlobalDataItem('Admins')->then(function ($gData) use ($ctx) {
-        $ctx->set('gData', $gData);
+$bot->middleware(function (Context $ctx, $next) use ($managers) {
+    $ctx->getGlobalDataItem('data')->then(function ($gData) use ($ctx, $next, $managers) {
+        $ctx->getUserDataItem('data')->then(function ($uData) use ($ctx, $next, $managers, $gData) {
+            $uData['manager'] = in_array($ctx->getEffectiveUser()->getId(), $managers);
+            if (!$uData['manager'] && !in_array($uData['owner'], $managers)) return;
+            $ctx->set('uData', $uData);
+            $ctx->set('gData', $gData);
+            $next($ctx);
+        });
     });
-
-    $ctx->getUserDataItem('data')->then(function ($uData) use ($ctx) {
-        if (($uData['admin'] ?? false) === false || !isset($uData['rank'])) {
-            if (in_array($ctx->getEffectiveUser()->getId(), explode(',', $_ENV['ADMINS']))) {
-                setUserData($ctx, 'admin', true);
-                $uData['admin'] = true;
-                setUserData($ctx, 'rank', 'headAdmin');
-                $uData['rank'] = 'headAdmin';
-            }
-        }
-        $ctx->set('uData', $uData);
-    });
-    $next($ctx);
 });
 
 function setUserData(Context $ctx, $key, $input_data): void
