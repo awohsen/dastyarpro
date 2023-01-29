@@ -217,6 +217,33 @@ $bot->onCbQueryData(['hRunningAds', 'hChannels', 'hAdmins', 'hLists'], function 
             }
             nextStep('hChannels', $ctx);
             break;
+        case 'hAdmins':
+            if ($ctx->get('uData')['manager']) {
+                if (isset($ctx->get('gData')[$uId]['admins']) && count($ctx->get('gData')[$uId]['admins']) >= 1) {
+                    $show = [];
+                    foreach ($ctx->get('gData')[$uId]['admins'] as $adminID => $adminName) {
+                        $show['👤 ' . $adminName] = $adminID;
+                    }
+
+                    $IK = BuildInlineKeyboard(array_keys($show), array_values($show), 2);
+                    $IK[count($IK)][0] = ['text' => '🗑', 'callback_data' => 'hDelAdmins'];
+                    $IK[count($IK) - 1][1] = ['text' => '➕', 'callback_data' => 'hNewAdmin'];
+                    $IK[count($IK)][0] = ['text' => '🔙', 'callback_data' => 'hMain'];
+
+                    $ctx->editMessageText("🔸 لیست ادمین های شما،‌ برای حذف هرکدام انتخاب کنید:",
+                        ['reply_markup' => ['inline_keyboard' => $IK]]);
+                } else {
+                    $ctx->editMessageText('🫂 شما هیچ ادمینی اضافه نکردید!
+    
+    ➕با دکمه زیر ادمین مورد نظر را اضافه کنید.', ['reply_markup' =>
+                        ['inline_keyboard' => [
+                            [['text' => '➕', 'callback_data' => 'hNewAdmin']],
+                            [['text' => '🔙', 'callback_data' => 'hMain']],
+                        ]]]);
+                }
+                nextStep('hAdmins', $ctx);
+            }
+            break;
         case 'hLists':
             $lists = $Admins[$uId]['Lists'];
 
@@ -845,6 +872,134 @@ function del2Channels(Context $ctx, $Ad)
     }
 }
 
+function hAdmins(Context $ctx)
+{
+    global $managers;
+    if ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
+        $data = $ctx->getCallbackQuery()->getData();
+        $uId = $ctx->getEffectiveUser()->getId();
+        switch ($data) {
+            case 'hMain':
+                $ctx->answerCallbackQuery(['text' => '🔅درحال برگشت به منوی اصلی ...']);
+                hMain($ctx);
+                break;
+            case 'hDelAdmins':
+                if (isset($ctx->get('gData')[$uId]['admins']) && count($ctx->get('gData')[$uId]['admins']) >= 1) {
+                    $Admins = $ctx->get('gData');
+                    foreach (array_keys($Admins[$uId]['admins']) as $adminID) {
+                        if (!in_array($adminID, $managers) && $Admins[$adminID]['owner'] == $uId) unset($Admins[$adminID]);
+                        unset($Admins[$uId]['admins'][$adminID]);
+                    }
+                    $ctx->setGlobalDataItem('data', $Admins);
+                    $ctx->answerCallbackQuery(['text' => '✅ تمامی ادمین های شما پاک شدند!', 'show_alert' => true]);
+
+                    $ctx->editMessageText('🫂 شما هیچ ادمینی اضافه نکردید!
+    
+    ➕با دکمه زیر ادمین مورد نظر را اضافه کنید.', ['reply_markup' =>
+                        ['inline_keyboard' => [
+                            [['text' => '➕', 'callback_data' => 'hNewAdmin']],
+                            [['text' => '🔙', 'callback_data' => 'hMain']],
+                        ]]]);
+                    nextStep('hAdmins', $ctx);
+                    return;
+                }
+
+                $ctx->answerCallbackQuery(['text' => '❎ هیچ ادمینی برای حذف وجود ندارد!']);
+                break;
+            case 'hNewAdmin':
+                $ctx->editMessageText(
+                    '👤 لطفا از ادمین خود بخواهید تنظیمات فوروارد خود را باز کرده و سپس از او یک پیام فوروارد کنید یا اینکه آیدی عددی او را ارسال کنید:',
+                    ['reply_markup' =>
+                        ['inline_keyboard' => [
+                            [['text' => '🔙', 'callback_data' => 'hMain']],
+                        ]]]);
+                nextStep('hNewAdmin', $ctx);
+                break;
+            default:
+                if (in_array($data, array_keys($ctx->get('gData')[$uId]['admins'] ?? []))) {
+                    $Admins = $ctx->get('gData');
+                    unset($Admins[$uId]['admins'][$data]);
+                    if (!in_array($data, $managers)) unset($Admins[$data]);
+                    $ctx->set('gData', $Admins);
+                    $ctx->setGlobalDataItem('data', $Admins);
+                    $ctx->answerCallbackQuery(['text' => '✅ ادمین مورد نظر شما پاک شد!', 'show_alert' => true]);
+
+                    if (isset($ctx->get('gData')[$uId]['admins']) && count($ctx->get('gData')[$uId]['admins']) >= 1) {
+                        $show = [];
+                        foreach ($ctx->get('gData')[$uId]['admins'] as $adminID => $adminName) {
+                            $show['👤 ' . $adminName] = $adminID;
+                        }
+
+                        $IK = BuildInlineKeyboard(array_keys($show), array_values($show), 2);
+                        $IK[count($IK)][0] = ['text' => '🗑', 'callback_data' => 'hDelAdmins'];
+                        $IK[count($IK) - 1][1] = ['text' => '➕', 'callback_data' => 'hNewAdmin'];
+                        $IK[count($IK)][0] = ['text' => '🔙', 'callback_data' => 'hMain'];
+
+                        $ctx->editMessageText("🔸 لیست ادمین های شما،‌ برای حذف هرکدام انتخاب کنید:",
+                            ['reply_markup' => ['inline_keyboard' => $IK]]);
+                    } else {
+                        $ctx->editMessageText('🫂 شما هیچ ادمینی اضافه نکردید!
+    
+    ➕با دکمه زیر ادمین مورد نظر را اضافه کنید.', ['reply_markup' =>
+                            ['inline_keyboard' => [
+                                [['text' => '➕', 'callback_data' => 'hNewAdmin']],
+                                [['text' => '🔙', 'callback_data' => 'hMain']],
+                            ]]]);
+                    }
+                    nextStep('hAdmins', $ctx);
+                }
+        }
+    }
+}
+
+function hNewAdmin(Context $ctx)
+{
+    if ($ctx->getUpdate()->getUpdateType() === Message::class) {
+        if ($ctx->getMessage()->getForwardFrom() !== null && $ctx->getMessage()->getForwardFrom()->getId() !== null) {
+            $from = $ctx->getMessage()->getForwardFrom();
+            addAdmin($ctx, $from->getId(), $from->getUsername() ?? shrink($from->getFirstName() . $from->getLastName()));
+        } elseif ($ctx->getMessage()->getText() !== null) {
+            $ctx->getChat($ctx->getMessage()->getText())->then(function (Chat $chat) use ($ctx){
+                if ($chat->getType() === 'private') {
+                    addAdmin($ctx, $chat->getId(), $chat->getUsername() ?? shrink($chat->getFirstName() . $chat->getLastName()));
+                }
+            });
+        }
+    } elseif ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
+        if ($ctx->getCallbackQuery()->getData() == 'hMain') {
+            $ctx->answerCallbackQuery(['text' => '🔅درحال برگشت به منوی اصلی ...']);
+            hMain($ctx);
+        }
+    }
+}
+
+function addAdmin(Context $ctx, $adminID, $name): void
+{
+    global $managers;
+    if (!in_array($adminID, $managers)) {
+        if (!isset($Admins[$adminID]['owner'])) {
+            $Admins = $ctx->get('gData');
+            $Admins[$adminID]['owner'] = $ctx->getEffectiveUser()->getId();
+            $Admins[$ctx->getEffectiveUser()->getId()]['admins'][$adminID] = $name;
+            $ctx->set('gData', $Admins);
+            $ctx->setGlobalDataItem('data', $Admins);
+            $ctx->sendMessage("✅ دسترسی شما به ربات باز شد! \n👉 /start", ['chat_id' => $adminID]);
+
+            $show = [];
+            foreach (@$ctx->get('gData')[$ctx->getEffectiveUser()->getId()]['admins'] as $adminID => $adminName) {
+                $show['👤 ' . $adminName] = $adminID;
+            }
+
+            $IK = BuildInlineKeyboard(array_keys($show), array_values($show), 2);
+            $IK[count($IK)][0] = ['text' => '🗑', 'callback_data' => 'hDelAdmins'];
+            $IK[count($IK) - 1][1] = ['text' => '➕', 'callback_data' => 'hNewAdmin'];
+            $IK[count($IK)][0] = ['text' => '🔙', 'callback_data' => 'hMain'];
+
+            $ctx->sendMessage('✅ کاربر با موفقیت ادمین شد!', ['reply_markup' => ['inline_keyboard' => $IK]]);
+            nextStep('hAdmins', $ctx);
+        }
+    }
+}
 
 function hNewList(Context $ctx)
 {
