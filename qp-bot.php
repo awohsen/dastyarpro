@@ -41,6 +41,19 @@ $dotenv->load();
 
 $bot = new Zanzara($_ENV['BOT_TOKEN'], $config);
 $managers = explode(',', $_ENV['ADMINS']);
+$authentication = function (Context $ctx, $next) use ($managers) {
+    $ctx->getGlobalDataItem('data')->then(function ($gData) use ($ctx, $next, $managers) {
+        if (!is_array($gData)) $gData = [];
+        $ctx->getUserDataItem('data')->then(function ($uData) use ($ctx, $next, $managers, $gData) {
+            $ctx->getEffectiveUser();
+            $uData['manager'] = in_array($ctx->getEffectiveUser()->getId(), $managers);
+            if (!$uData['manager'] && !in_array(@$gData[$ctx->getEffectiveUser()->getId()]['owner'], $managers)) return;
+            $ctx->set('uData', $uData);
+            $ctx->set('gData', $gData);
+            $next($ctx);
+        });
+    });
+};
 
 $bot->onUpdate(function (Context $ctx) {
     if (isset($ctx->get('uData')['step'])) {
@@ -48,7 +61,7 @@ $bot->onUpdate(function (Context $ctx) {
             call_user_func($f, $ctx);
         }
     }
-});
+})->middleware($authentication);
 
 $bot->onMessage(function (Context $ctx) {
     if (null !== $ctx->getMessage()->getText() && str_starts_with($ctx->getMessage()->getText(), '/start@AdvertisingDarsbot ')) {
@@ -86,19 +99,17 @@ $bot->onMessage(function (Context $ctx) {
 $bot->onCommand('start', function (Context $ctx) {
     endConversation($ctx);
     if ($ctx->getEffectiveChat()->getType() === 'private') {
-            if ($ctx->get('uData')['rank'] === 'headAdmin') {
-                $opens = count($ctx->get('gData')[$ctx->getEffectiveUser()->getId()]['Ads']['o'] ?? []);
-                $text = '🔆 سلام مالک گرامی به پنل کاربری خوش آمدید.';
-                $opt = ['reply_markup' =>
-                    ['inline_keyboard' => [
-                        [['text' => "تبلیغات فعال ($opens)", 'callback_data' => 'hRunningAds']],
-                        [['text' => ' کانالها 📢', 'callback_data' => 'hChannels'], ['text' => 'ادمینها', 'callback_data' => 'hAdmins'], ['text' => '📂 دسته ها', 'callback_data' => 'hLists']]
-                    ]]];
+            $opens = count($ctx->get('gData')[$ctx->getEffectiveUser()->getId()]['Ads']['o'] ?? []);
+            $text = '🔆 سلام مالک گرامی به پنل کاربری خوش آمدید.';
+            $opt = ['reply_markup' =>
+                ['inline_keyboard' => [
+                    [['text' => "تبلیغات فعال ($opens)", 'callback_data' => 'hRunningAds']],
+                    [['text' => ' کانالها 📢', 'callback_data' => 'hChannels'], ['text' => 'ادمینها', 'callback_data' => 'hAdmins'], ['text' => '📂 دسته ها', 'callback_data' => 'hLists']]
+                ]]];
 
-                $ctx->sendMessage($text, $opt);
-            }
+            $ctx->sendMessage($text, $opt);
     }
-});
+})->middleware($authentication);
 $bot->onCommand('startad {AdNum}', function (Context $ctx, $AdNum) {
     $Admins = $ctx->get('gData');
     $uId = $ctx->getEffectiveUser()->getId();
@@ -116,7 +127,7 @@ $bot->onCommand('startad {AdNum}', function (Context $ctx, $AdNum) {
         $ctx->sendMessage('❎ در حال حاضر تبلیغ ارسال شده!
         ☑️ لطفا برای تایید ارسال دوباره اجباری از طریق منو اقدام کنید!');
     }
-});
+})->middleware($authentication);
 $bot->onCommand('stopad {AdNum}', function (Context $ctx, $AdNum) {
     $Admins = $ctx->get('gData');
     $uId = $ctx->getEffectiveUser()->getId();
@@ -134,7 +145,7 @@ $bot->onCommand('stopad {AdNum}', function (Context $ctx, $AdNum) {
         $ctx->sendMessage('❎ در حال حاضر تبلیغ ارسال نشده!
         ☑️ لطفا برای تایید توقف و تلاش مجدد برای حذف از کانالها توقف را بزنید!');
     }
-});
+})->middleware($authentication);
 $bot->onCbQueryData(['hRunningAds', 'hChannels', 'hAdmins', 'hLists'], function (Context $ctx) {
     $data = $ctx->getCallbackQuery()->getData();
     $uId = $ctx->getEffectiveUser()->getId();
@@ -222,7 +233,7 @@ $bot->onCbQueryData(['hRunningAds', 'hChannels', 'hAdmins', 'hLists'], function 
             break;
 
     }
-});
+})->middleware($authentication);
 
 function nextStep(callable $function, Context $ctx)
 {
@@ -409,12 +420,8 @@ function hNewAdName(Context $ctx)
         if (($text = $ctx->getMessage()->getText()) !== null) {
             $uId = $ctx->getEffectiveUser()->getId();
 
-            if (mb_strlen($text) > 25) {
-                $text = mb_substr($text, '0', 25, mb_detect_encoding($text));
-                $text .= '...';
-            }
             $Ad = [];
-            $Ad['label'] = $text;
+            $Ad['label'] = shrink($text);;
 
             setUserData($ctx, 'Ad', $Ad);
 
@@ -848,10 +855,7 @@ function hNewList(Context $ctx)
         }
     } elseif ($ctx->getUpdate()->getUpdateType() === Message::class) {
         if (($text = $ctx->getMessage()->getText()) !== null) {
-            if (mb_strlen($text) > 25) {
-                $text = mb_substr($text, '0', 25, mb_detect_encoding($text));
-                $text .= '...';
-            }
+            $text = shrink($text);
             $Admins = $ctx->get('gData');
             $uId = $ctx->getEffectiveUser()->getId();
 
@@ -967,12 +971,7 @@ function getChatMember($ChatId, $UserID, Context $ctx)
                         if ($result->getType() == 'channel') {
                             $Admins = $ctx->get('gData');
                             $uId = $ctx->getEffectiveUser()->getId();
-                            $title = $result->getTitle();
-
-                            if (mb_strlen($title) > 25) {
-                                $title = mb_substr($title, '0', 25, mb_detect_encoding($title));
-                                $title .= '...';
-                            }
+                            $title = shrink($result->getTitle());
 
                             $Admins[$uId]['Channels'][$ChatId]['name'] = $title;
                             if ($result->getUsername() !== null) $Admins[$uId]['Channels'][$ChatId]['username'] = $result->getUsername();
@@ -1096,19 +1095,6 @@ function hAdd2List(Context $ctx)
 
 }
 
-$bot->middleware(function (Context $ctx, $next) use ($managers) {
-    $ctx->getGlobalDataItem('data')->then(function ($gData) use ($ctx, $next, $managers) {
-        if (!is_array($gData)) $gData = [];
-        $ctx->getUserDataItem('data')->then(function ($uData) use ($ctx, $next, $managers, $gData) {
-            $uData['manager'] = in_array($ctx->getEffectiveUser()->getId(), $managers);
-            if (!$uData['manager'] && !in_array($uData['owner'], $managers)) return;
-            $ctx->set('uData', $uData);
-            $ctx->set('gData', $gData);
-            $next($ctx);
-        });
-    });
-});
-
 function setUserData(Context $ctx, $key, $input_data): void
 {
     $data = $ctx->get('uData');
@@ -1160,3 +1146,7 @@ function BuildInlineKeyboard($text = [], $cb = [], int $sort = 1): array
     return $keyboard;
 }
 
+function shrink(string $text, int $size = 25, $postfix = '...'): string
+{
+    return mb_strlen($text) < $size ? $text : mb_substr($text, '0', $size, mb_detect_encoding($text)) . $postfix;
+}
