@@ -11,8 +11,8 @@ use Zanzara\Zanzara;
 use Monolog\Logger;
 
 
-require __DIR__.'/vendor/autoload.php';
-require __DIR__.'/ArrayCache.php';
+require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/ArrayCache.php';
 
 $config = new Config();
 
@@ -28,8 +28,8 @@ $cache = new ArrayCache();
 $config->setCache($cache);
 $config->setCacheTtl(null); //persistent
 
-if (file_exists(__DIR__.'/.cache'))
-    if (($_cache = json_decode(file_get_contents(__DIR__.'/.cache'),1)) !== null){
+if (file_exists(__DIR__ . '/.cache'))
+    if (($_cache = json_decode(file_get_contents(__DIR__ . '/.cache'), 1)) !== null) {
         if (isset($_cache['data'])) $cache->data = $_cache['data'];
         if (isset($_cache['expires'])) $cache->expires = $_cache['expires'];
     }
@@ -41,10 +41,10 @@ $dotenv->load();
 
 $bot = new Zanzara($_ENV['BOT_TOKEN'], $config);
 
-$bot->onUpdate(function (Context $ctx){
-    if (isset($ctx->get('uData')['step'])){
-        if (function_exists($f = $ctx->get('uData')['step'])){
-            call_user_func($f,$ctx);
+$bot->onUpdate(function (Context $ctx) {
+    if (isset($ctx->get('uData')['step'])) {
+        if (function_exists($f = $ctx->get('uData')['step'])) {
+            call_user_func($f, $ctx);
         }
     }
 });
@@ -75,12 +75,12 @@ $bot->onMessage(function (Context $ctx) {
                     $ctx->deleteMessage($ctx->getEffectiveChat()->getId(), $ctx->getMessage()->getMessageId());
                 }
             }
-            if ($ctx->getMessage()->getForwardFromChat()->getId() == $_ENV["ADSCHANNEL"]){
+            if ($ctx->getMessage()->getForwardFromChat()->getId() == $_ENV["ADSCHANNEL"]) {
                 $ctx->deleteMessage($ctx->getEffectiveChat()->getId(), $ctx->getMessage()->getMessageId());
             }
         }
     }
-},['chat_type' => 'supergroup']);
+}, ['chat_type' => 'supergroup']);
 
 $bot->onCommand('start', function (Context $ctx) {
     endConversation($ctx);
@@ -108,12 +108,12 @@ $bot->onCommand('startad {AdNum}', function (Context $ctx, $AdNum) {
 
         $Admins[$uId]['Ads']['o'][$AdNum] = $Admins[$uId]['Ads']['c'][$AdNum];
         unset($Admins[$uId]['Ads']['c'][$AdNum]);
-        $ctx->setGlobalDataItem('Admins',$Admins);
+        $ctx->setGlobalDataItem('Admins', $Admins);
 
         $ctx->sendMessage('✅  بنظر تبلیغ شما  ارسال شده است!
 
 💡پس از توقف تبلیغ گزارش نهایی آن در کانال مربوطه ارسال خواهد شد...');
-    }else{
+    } else {
         $ctx->sendMessage('❎ در حال حاضر تبلیغ ارسال شده!
         ☑️ لطفا برای تایید ارسال دوباره اجباری از طریق منو اقدام کنید!');
     }
@@ -131,18 +131,53 @@ $bot->onCommand('stopad {AdNum}', function (Context $ctx, $AdNum) {
         $ctx->sendMessage('✅  بنظر تبلیغ شما از تمام کانالها حذف شده است!
         
 💡پس از توقف تبلیغ گزارش نهایی آن در کانال مربوطه ارسال خواهد شد...');
-    }else{
+    } else {
         $ctx->sendMessage('❎ در حال حاضر تبلیغ ارسال نشده!
         ☑️ لطفا برای تایید توقف و تلاش مجدد برای حذف از کانالها توقف را بزنید!');
     }
 });
-$bot->onCbQueryData(['hRunningAds','hChannels','hAdmins','hLists'],function (Context $ctx){
+$bot->onCbQueryData(['hRunningAds', 'hChannels', 'hAdmins', 'hLists'], function (Context $ctx) {
     $data = $ctx->getCallbackQuery()->getData();
     $uId = $ctx->getEffectiveUser()->getId();
     $Admins = $ctx->get('gData') ?? [];
     $ctx->answerCallbackQuery();
 
     switch ($data) {
+        case 'hRunningAds':
+            if (
+                isset($ctx->get('gData')[$uId]['Ads']) &&
+                (count($ctx->get('gData')[$uId]['Ads']['o']) >= 1 || count($ctx->get('gData')[$uId]['Ads']['c']) >= 1)
+            ) {
+                $show = [];
+                if (count($ctx->get('gData')[$uId]['Ads']['o']) >= 1) {
+                    foreach ($ctx->get('gData')[$uId]['Ads']['o'] as $ad => $val) {
+                        $show['🟢 ' . $val['label']] = $ad;
+                    }
+                }
+                if (count($ctx->get('gData')[$uId]['Ads']['c']) >= 1) {
+                    foreach ($ctx->get('gData')[$uId]['Ads']['c'] as $ad => $val) {
+                        $show[$val['label']] = $ad;
+                    }
+                }
+
+                $IK = BuildInlineKeyboard(array_keys($show), array_values($show), 2);
+                $IK[count($IK)][0] = ['text' => '🗑', 'callback_data' => 'hDelAd'];
+                $IK[count($IK) - 1][1] = ['text' => '➕', 'callback_data' => 'hNewAd'];
+                $IK[count($IK)][0] = ['text' => '🔙', 'callback_data' => 'hMain'];
+
+                $ctx->editMessageText("🔸 تبلیغ مورد نظر را انتخاب کنید‍!",
+                    ['reply_markup' => ['inline_keyboard' => $IK]]);
+            } else {
+                $ctx->editMessageText('📭 هیچ تبلیغی در حال اجرا نیست!
+    
+    ➕با دکمه زیر، شروع به تبلیغ در کانالهایی که اضافه کردید.', ['reply_markup' =>
+                    ['inline_keyboard' => [
+                        [['text' => '➕', 'callback_data' => 'hNewAd']],
+                        [['text' => '🔙', 'callback_data' => 'hMain']],
+                    ]]]);
+            }
+            nextStep('hRunningAds', $ctx);
+            break;
         case 'hChannels':
             if (isset($ctx->get('gData')[$uId]['Channels']) && count($ctx->get('gData')[$uId]['Channels']) >= 1) {
                 $uId = $ctx->getEffectiveUser()->getId();
@@ -185,54 +220,24 @@ $bot->onCbQueryData(['hRunningAds','hChannels','hAdmins','hLists'],function (Con
 
 ‌",
                 ['reply_markup' => ['inline_keyboard' => $IK]]);
-            nextStep('hLists',$ctx);
+            nextStep('hLists', $ctx);
             break;
-        case 'hRunningAds':
-            if (
-                isset($ctx->get('gData')[$uId]['Ads']) &&
-                (count($ctx->get('gData')[$uId]['Ads']['o']) >= 1 || count($ctx->get('gData')[$uId]['Ads']['c']) >= 1)
-            ) {
-                $show = [];
-                if (count($ctx->get('gData')[$uId]['Ads']['o']) >= 1) {
-                    foreach ($ctx->get('gData')[$uId]['Ads']['o'] as $ad => $val) {
-                        $show['🟢 ' . $val['label']] = $ad;
-                    }
-                }
-                if (count($ctx->get('gData')[$uId]['Ads']['c']) >= 1) {
-                    foreach ($ctx->get('gData')[$uId]['Ads']['c'] as $ad => $val) {
-                        $show[$val['label']] = $ad;
-                    }
-                }
 
-                $IK = BuildInlineKeyboard(array_keys($show), array_values($show), 2);
-                $IK[count($IK)][0] = ['text' => '🗑', 'callback_data' => 'hDelAd'];
-                $IK[count($IK)-1][1] = ['text' => '➕', 'callback_data' => 'hNewAd'];
-                $IK[count($IK)][0] = ['text' => '🔙', 'callback_data' => 'hMain'];
-
-                $ctx->editMessageText("🔸 تبلیغ مورد نظر را انتخاب کنید‍!",
-                    ['reply_markup' => ['inline_keyboard' => $IK]]);
-            } else {
-                $ctx->editMessageText('📭 هیچ تبلیغی در حال اجرا نیست!
-    
-    ➕با دکمه زیر، شروع به تبلیغ در کانالهایی که اضافه کردید.', ['reply_markup' =>
-                    ['inline_keyboard' => [
-                        [['text' => '➕', 'callback_data' => 'hNewAd']],
-                        [['text' => '🔙', 'callback_data' => 'hMain']],
-                    ]]]);
-            }
-            nextStep('hRunningAds', $ctx);
-            break;
     }
 });
 
-function nextStep(callable $function, Context $ctx){
-    setUserData($ctx, 'step',$function);
+function nextStep(callable $function, Context $ctx)
+{
+    setUserData($ctx, 'step', $function);
 }
-function endConversation(Context $ctx){
+
+function endConversation(Context $ctx)
+{
     deleteUserData($ctx, 'step');
 }
 
-function hMain(Context $ctx,$mode = 'edit'){
+function hMain(Context $ctx, $mode = 'edit')
+{
     $opens = count($ctx->get('gData')[$ctx->getEffectiveUser()->getId()]['Ads']['o'] ?? []);
 
 
@@ -243,8 +248,8 @@ function hMain(Context $ctx,$mode = 'edit'){
             [['text' => ' کانالها 📢', 'callback_data' => 'hChannels'], ['text' => 'ادمینها', 'callback_data' => 'hAdmins'], ['text' => '📂 دسته ها', 'callback_data' => 'hLists']]
         ]]];
 
-    if($mode == 'edit') $ctx->editMessageText($text,$opt);
-    else $ctx->sendMessage($text,$opt);
+    if ($mode == 'edit') $ctx->editMessageText($text, $opt);
+    else $ctx->sendMessage($text, $opt);
 
     endConversation($ctx);
 }
@@ -253,7 +258,7 @@ function hLists(Context $ctx)
 {
     if ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
         $data = $ctx->getCallbackQuery()->getData();
-        switch ($data){
+        switch ($data) {
             case 'hMain':
                 $ctx->answerCallbackQuery(['text' => '🔅درحال برگشت به منوی اصلی ...']);
                 hMain($ctx);
@@ -273,20 +278,20 @@ function hLists(Context $ctx)
                 $uId = $ctx->getEffectiveUser()->getId();
                 $Admins = $ctx->get('gData') ?? [];
                 $lists = $Admins[$uId]['Lists'];
-                if (in_array($data,array_keys($lists))){
-                    setUserData($ctx, 'list',$data);
+                if (in_array($data, array_keys($lists))) {
+                    setUserData($ctx, 'list', $data);
 
                     $ctx->editMessageText('⚙️ برای تغییر انتخاب کنید : 
 
 ➖ برای حذف دسته 
 🔙 برای برگشت به منوی اصلی 
 
-‌',['reply_markup' => ['inline_keyboard' => [
-                        [['callback_data' => 'changeName','text' => 'تغییر نام دسته ✏️'],['text'=>'📢 تغییر کانالها', 'callback_data'=>'changeChannels']],
-                        [['callback_data' => 'delList','text' => '➖']],
+‌', ['reply_markup' => ['inline_keyboard' => [
+                        [['callback_data' => 'changeName', 'text' => 'تغییر نام دسته ✏️'], ['text' => '📢 تغییر کانالها', 'callback_data' => 'changeChannels']],
+                        [['callback_data' => 'delList', 'text' => '➖']],
                         [['text' => '🔙', 'callback_data' => 'hMain']]
                     ]]]);
-                    nextStep('hListMg',$ctx);
+                    nextStep('hListMg', $ctx);
                 }
         }
     }
@@ -297,16 +302,16 @@ function hRunningAds(Context $ctx)
     if ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
         $data = $ctx->getCallbackQuery()->getData();
         $uId = $ctx->getEffectiveUser()->getId();
-        switch ($data){
+        switch ($data) {
             case 'hMain':
                 $ctx->answerCallbackQuery(['text' => '🔅درحال برگشت به منوی اصلی ...']);
                 hMain($ctx);
                 break;
             case 'hDelAd':
-                if (isset($ctx->get('gData')[$uId]['Ads']['c']) && count($ctx->get('gData')[$uId]['Ads']['c']) >= 1){
+                if (isset($ctx->get('gData')[$uId]['Ads']['c']) && count($ctx->get('gData')[$uId]['Ads']['c']) >= 1) {
                     $Admins = $ctx->get('gData') ?? [];
                     $Admins[$uId]['Ads']['c'] = [];
-                    $ctx->setGlobalDataItem('Admins',$Admins);
+                    $ctx->setGlobalDataItem('Admins', $Admins);
 
                     $ctx->answerCallbackQuery(['text' => '✅ تمامی تبلیغ های متوقف شده شما پاک شدند!', 'show_alert' => true]);
 
@@ -323,7 +328,7 @@ function hRunningAds(Context $ctx)
 
                         $IK = BuildInlineKeyboard(array_keys($show), array_values($show), 2);
                         $IK[count($IK)][0] = ['text' => '🗑', 'callback_data' => 'hDelAd'];
-                        $IK[count($IK)-1][1] = ['text' => '➕', 'callback_data' => 'hNewAd'];
+                        $IK[count($IK) - 1][1] = ['text' => '➕', 'callback_data' => 'hNewAd'];
                         $IK[count($IK)][0] = ['text' => '🔙', 'callback_data' => 'hMain'];
 
                         $ctx->editMessageText("🔸 تبلیغ مورد نظر را انتخاب کنید‍!",
@@ -352,8 +357,8 @@ function hRunningAds(Context $ctx)
                         ['inline_keyboard' => [
                             [['text' => '🔙', 'callback_data' => 'hMain']],
                         ]]]);
-                    nextStep('hNewAdName',$ctx);
-                }else{
+                    nextStep('hNewAdName', $ctx);
+                } else {
                     $ctx->answerCallbackQuery(['text' => '📁 برای شروع تبلیغ باید در پنل خودتون حداقل یک کانال و یک دسته داشته باشید!', 'show_alert' => true]);
 
                     if (isset($ctx->get('gData')[$uId]['Lists'])) {
@@ -378,8 +383,8 @@ function hRunningAds(Context $ctx)
                 $opens = $ctx->get('gData')[$uId]['Ads']['o'] ?? [];
                 $close = $ctx->get('gData')[$uId]['Ads']['c'] ?? [];
 
-                if (in_array($data,array_keys($opens)) || in_array($data,array_keys($close))){
-                    setUserData($ctx, 'AdNum',$data);
+                if (in_array($data, array_keys($opens)) || in_array($data, array_keys($close))) {
+                    setUserData($ctx, 'AdNum', $data);
 
                     $ctx->editMessageText('🎯 انتخاب کنید !
 
@@ -388,17 +393,18 @@ function hRunningAds(Context $ctx)
 
 💡پس از توقف تبلیغ گزارش نهایی آن در کانال مربوطه ارسال خواهد شد...',
                         ['reply_markup' => ['inline_keyboard' => [
-                            [['text' => 'توقف✖️', 'callback_data' => 'stop'],['text' => '⚡️شروع', 'callback_data' => 'start']],
+                            [['text' => 'توقف✖️', 'callback_data' => 'stop'], ['text' => '⚡️شروع', 'callback_data' => 'start']],
                             [['text' => ' توقف زماندار⏳', 'callback_data' => 'stop-time'], ['text' => '⏳شروع زماندار', 'callback_data' => 'start-time']],
                             [['text' => '💬 کانال ها', 'callback_data' => 'ch']],
-                            [['text' => 'تغییر پست', 'callback_data' => 'post'],['text' => 'تغییر نام', 'callback_data' => 'name']],
-                            [['text' => '🔙','callback_data' => 'hMain']]
+                            [['text' => 'تغییر پست', 'callback_data' => 'post'], ['text' => 'تغییر نام', 'callback_data' => 'name']],
+                            [['text' => '🔙', 'callback_data' => 'hMain']]
                         ]]]);
-                    nextStep('AdPanel',$ctx);
+                    nextStep('AdPanel', $ctx);
                 }
         }
     }
 }
+
 function hNewAdName(Context $ctx)
 {
     if ($ctx->getUpdate()->getUpdateType() === Message::class) {
@@ -412,32 +418,32 @@ function hNewAdName(Context $ctx)
             $Ad = [];
             $Ad['label'] = $text;
 
-            setUserData($ctx, 'Ad',$Ad);
+            setUserData($ctx, 'Ad', $Ad);
 
             $Admins = $ctx->get('gData') ?? [];
 
             $lists = [];
-            foreach ($Admins[$uId]['Channels'] as $key => $list){
+            foreach ($Admins[$uId]['Channels'] as $key => $list) {
                 if (isset($list['username']) && !empty($list['username']))
-                    $name = '@'.$list['username'];
-                elseif(isset($list['name']) && !empty($list['name']))
+                    $name = '@' . $list['username'];
+                elseif (isset($list['name']) && !empty($list['name']))
                     $name = $list['name'];
                 else $name = $key;
 
                 $lists[$name]['id'] = $key;
                 $lists[$name]['sel'] = true;
             }
-            setUserData($ctx, 'lists',$lists);
-            setUserData($ctx, 'Ad',$Ad);
+            setUserData($ctx, 'lists', $lists);
+            setUserData($ctx, 'Ad', $Ad);
 
 
-            $show = function (array $lists){
+            $show = function (array $lists) {
                 $show = [];
                 $listKey = array_keys($lists);
                 foreach ($listKey as $key => $list) {
-                    if ($lists[$list]['sel'] === true){
-                        $show[$key] = '✔️'. $list;
-                    }else{
+                    if ($lists[$list]['sel'] === true) {
+                        $show[$key] = '✔️' . $list;
+                    } else {
                         $show[$key] = $list;
                     }
                 }
@@ -445,35 +451,37 @@ function hNewAdName(Context $ctx)
             };
             $show = $show($lists);
 
-            $IK = BuildInlineKeyboard(array_values($show),array_keys($lists),2);
+            $IK = BuildInlineKeyboard(array_values($show), array_keys($lists), 2);
 
 //            $IK = BuildInlineKeyboard(array_keys($lists),array_keys($lists),2);
-            $IK[count($IK)][0] = ['text' => '☑️','callback_data' => 'done'];
-            $IK[count($IK)][0] = ['text' => '🔙','callback_data' => 'hMain'];
+            $IK[count($IK)][0] = ['text' => '☑️', 'callback_data' => 'done'];
+            $IK[count($IK)][0] = ['text' => '🔙', 'callback_data' => 'hMain'];
 
             $ctx->sendMessage('💬 لطفا کانالهای مورد نظر را برای ارسال انتخاب کنید!',
                 ['reply_markup' => ['inline_keyboard' => $IK]]);
-            nextStep('hNewAd',$ctx);
+            nextStep('hNewAd', $ctx);
         }
-    }elseif ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
-        if ($ctx->getCallbackQuery()->getData() == 'hMain'){
+    } elseif ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
+        if ($ctx->getCallbackQuery()->getData() == 'hMain') {
             $ctx->answerCallbackQuery(['text' => '🔅درحال برگشت به منوی اصلی ...']);
             hMain($ctx);
             deleteUserData($ctx, 'Ad');
         }
     }
 }
-function hNewAd(Context $ctx){
+
+function hNewAd(Context $ctx)
+{
     if ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
         $lists = $ctx->get('uData')['lists'];
 
-        $show = function (array $lists){
+        $show = function (array $lists) {
             $show = [];
             $listKey = array_keys($lists);
             foreach ($listKey as $key => $list) {
-                if ($lists[$list]['sel'] === true){
-                    $show[$key] = '✔️'. $list;
-                }else{
+                if ($lists[$list]['sel'] === true) {
+                    $show[$key] = '✔️' . $list;
+                } else {
                     $show[$key] = $list;
                 }
             }
@@ -488,64 +496,66 @@ function hNewAd(Context $ctx){
             $Ad = $ctx->get('uData')['Ad'];
 
             foreach ($listKey as $list) {
-                if ($lists[$list]['sel'] === true){
-                    if (!in_array($lists[$list]['id'],$Ad['Channels'] ?? []))
+                if ($lists[$list]['sel'] === true) {
+                    if (!in_array($lists[$list]['id'], $Ad['Channels'] ?? []))
                         $Ad['Channels'][$lists[$list]['id']]['msg'] = null;
                     $count++;
                 }
             }
             if ($count < 1)
-                $ctx->answerCallbackQuery(['text'=>'⚠️ حداقل یکی را انتخاب کنید!']);
+                $ctx->answerCallbackQuery(['text' => '⚠️ حداقل یکی را انتخاب کنید!']);
             else {
                 deleteUserData($ctx, 'lists');
                 setUserData($ctx, 'Ad', $Ad);
                 $ctx->answerCallbackQuery(['text' => "✅ $count کانال به لیست ارسال این تبلیغ اضافه شدند!"]);
                 $ctx->editMessageText(' 💬 لطفاً تبلیغ را ارسال کنید...
 
-💠 میتوانید حالت تبلیغ را هم از زیر مشخص کنید!',['reply_markup' => ['inline_keyboard' => [
-                    [['text' => 'غیر مستقیم ✔️', 'callback_data' => '1'],['text' => 'فورواردی', 'callback_data' => '2'],['text' => 'مستقیم', 'callback_data' => '3'],],
-                    [['text' => '🔙','callback_data' => 'hMain']]
+💠 میتوانید حالت تبلیغ را هم از زیر مشخص کنید!', ['reply_markup' => ['inline_keyboard' => [
+                    [['text' => 'غیر مستقیم ✔️', 'callback_data' => '1'], ['text' => 'فورواردی', 'callback_data' => '2'], ['text' => 'مستقیم', 'callback_data' => '3'],],
+                    [['text' => '🔙', 'callback_data' => 'hMain']]
                 ]]]);
                 // todo next step
-                nextStep('hNewAdGet',$ctx);
+                nextStep('hNewAdGet', $ctx);
             }
-        }elseif ($data == 'hMain'){
+        } elseif ($data == 'hMain') {
             deleteUserData($ctx, 'lists');
             deleteUserData($ctx, 'Ad');
             $ctx->answerCallbackQuery(['text' => '🔅درحال برگشت به منوی اصلی ...']);
 
             hMain($ctx);
-        }else{
-            if (in_array($data,array_keys($lists))){
+        } else {
+            if (in_array($data, array_keys($lists))) {
                 $lists[$data]['sel'] = !$lists[$data]['sel'];
                 $show = $show($lists);
 
-                $IK = BuildInlineKeyboard(array_values($show),array_keys($lists),2);
-                $IK[count($IK)][0] = ['text' => '☑️','callback_data' => 'done'];
-                $IK[count($IK)][0] = ['text' => '🔙','callback_data' => 'hMain'];
+                $IK = BuildInlineKeyboard(array_values($show), array_keys($lists), 2);
+                $IK[count($IK)][0] = ['text' => '☑️', 'callback_data' => 'done'];
+                $IK[count($IK)][0] = ['text' => '🔙', 'callback_data' => 'hMain'];
 
                 $ctx->editMessageText('🎯 انتخاب شد!
-💡موارد بیشتر انتخاب کنید یا ☑️ را بزنید...',['reply_markup' => ['inline_keyboard' => $IK]]);
+💡موارد بیشتر انتخاب کنید یا ☑️ را بزنید...', ['reply_markup' => ['inline_keyboard' => $IK]]);
 
-                setUserData($ctx, 'lists',$lists);
+                setUserData($ctx, 'lists', $lists);
             }
         }
     }
 }
-function hNewAdGet(Context $ctx){
+
+function hNewAdGet(Context $ctx)
+{
     $Ad = $ctx->get('uData')['Ad'];
 
-    $doThis = function($ctx,$Ad){
+    $doThis = function ($ctx, $Ad) {
 
         $Ad['send']['chatId'] = $_ENV['ADSCHANNEL'];
         deleteUserData($ctx, 'Ad');
 
         $Admins = $ctx->get('gData') ?? [];
         $uId = $ctx->getEffectiveUser()->getId();
-        $Admins[$uId]['Ads']['c'][$r = rand(11111,99999)] = $Ad;
-        setUserData($ctx, 'AdNum',$r);
+        $Admins[$uId]['Ads']['c'][$r = rand(11111, 99999)] = $Ad;
+        setUserData($ctx, 'AdNum', $r);
 
-        $ctx->setGlobalDataItem('Admins',$Admins);
+        $ctx->setGlobalDataItem('Admins', $Admins);
         $ctx->sendMessage('☑️ تبلیغ شما آماده ارسال است!
 
 ⚡️ با دکمه شروع تبلیغ مربوطه را در کانال های خود ارسال کنید. 
@@ -553,68 +563,67 @@ function hNewAdGet(Context $ctx){
 
 💡پس از توقف تبلیغ گزارش نهایی آن در کانال مربوطه ارسال خواهد شد...',
             ['reply_markup' => ['inline_keyboard' => [
-                [['text' => 'توقف✖️', 'callback_data' => 'stop'],['text' => '⚡️شروع', 'callback_data' => 'start']],
+                [['text' => 'توقف✖️', 'callback_data' => 'stop'], ['text' => '⚡️شروع', 'callback_data' => 'start']],
                 [['text' => ' توقف زماندار⏳', 'callback_data' => 'stop-time'], ['text' => '⏳شروع زماندار', 'callback_data' => 'start-time']],
-                [['text' => 'تغییر پست', 'callback_data' => 'post'],['text' => 'تغییر نام', 'callback_data' => 'name']],
-                [['text' => '🔙','callback_data' => 'hMain']]
+                [['text' => 'تغییر پست', 'callback_data' => 'post'], ['text' => 'تغییر نام', 'callback_data' => 'name']],
+                [['text' => '🔙', 'callback_data' => 'hMain']]
             ]]]);
-        nextStep('AdPanel',$ctx);
+        nextStep('AdPanel', $ctx);
     };
 
 
     if ($ctx->getUpdate()->getUpdateType() === Message::class) {
-        switch ($Ad['type'] ?? '1'){
+        switch ($Ad['type'] ?? '1') {
             case '1':
                 $ctx->copyMessage(
-                    $_ENV['ADSCHANNEL'],$ctx->getEffectiveChat()->getId(),$ctx->getMessage()->getMessageId()
-                )->then(function ($id) use ($Ad, $ctx, $doThis){
+                    $_ENV['ADSCHANNEL'], $ctx->getEffectiveChat()->getId(), $ctx->getMessage()->getMessageId()
+                )->then(function ($id) use ($Ad, $ctx, $doThis) {
                     $Ad['send']['msg'] = $id->getMessageId();
-                    $doThis($ctx,$Ad);
+                    $doThis($ctx, $Ad);
                 });
                 break;
             case '2':
             case '3':
                 $ctx->forwardMessage(
-                    $_ENV['ADSCHANNEL'],$ctx->getEffectiveChat()->getId(),$ctx->getMessage()->getMessageId()
-                )->then(function ($id) use ($Ad, $ctx, $doThis){
+                    $_ENV['ADSCHANNEL'], $ctx->getEffectiveChat()->getId(), $ctx->getMessage()->getMessageId()
+                )->then(function ($id) use ($Ad, $ctx, $doThis) {
                     $Ad['send']['msg'] = $id->getMessageId();
-                    $doThis($ctx,$Ad);
+                    $doThis($ctx, $Ad);
                 });
                 break;
         }
 
 
-
-    }elseif ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
+    } elseif ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
         $Ad['type'] = $ctx->getCallbackQuery()->getData();
         $ctx->answerCallbackQuery();
-        switch ($ctx->getCallbackQuery()->getData()){
+        switch ($ctx->getCallbackQuery()->getData()) {
             case '1':
                 $ctx->editMessageText(' 💬 لطفاً تبلیغ را ارسال کنید...
 
-💠 میتوانید حالت تبلیغ را هم از زیر مشخص کنید!',['reply_markup' => ['inline_keyboard' => [
-                    [['text' => 'غیر مستقیم ✔️', 'callback_data' => '1'],['text' => 'فورواردی', 'callback_data' => '2'],['text' => 'مستقیم', 'callback_data' => '3'],],
-                    [['text' => '🔙','callback_data' => 'hMain']]
+💠 میتوانید حالت تبلیغ را هم از زیر مشخص کنید!', ['reply_markup' => ['inline_keyboard' => [
+                    [['text' => 'غیر مستقیم ✔️', 'callback_data' => '1'], ['text' => 'فورواردی', 'callback_data' => '2'], ['text' => 'مستقیم', 'callback_data' => '3'],],
+                    [['text' => '🔙', 'callback_data' => 'hMain']]
                 ]]]);
-                setUserData($ctx, 'Ad',$Ad);
+                setUserData($ctx, 'Ad', $Ad);
                 break;
             case '2':
                 $ctx->editMessageText(' 💬 لطفاً تبلیغ را ارسال کنید...
 
-💠 میتوانید حالت تبلیغ را هم از زیر مشخص کنید!',['reply_markup' => ['inline_keyboard' => [
-                    [['text' => 'غیر مستقیم', 'callback_data' => '1'],['text' => 'فورواردی ✔️', 'callback_data' => '2'],['text' => 'مستقیم', 'callback_data' => '3'],],
-                    [['text' => '🔙','callback_data' => 'hMain']]
+💠 میتوانید حالت تبلیغ را هم از زیر مشخص کنید!', ['reply_markup' => ['inline_keyboard' => [
+                    [['text' => 'غیر مستقیم', 'callback_data' => '1'], ['text' => 'فورواردی ✔️', 'callback_data' => '2'], ['text' => 'مستقیم', 'callback_data' => '3'],],
+                    [['text' => '🔙', 'callback_data' => 'hMain']]
                 ]]]);
-                setUserData($ctx, 'Ad',$Ad);
+                setUserData($ctx, 'Ad', $Ad);
                 break;
             case '3':
                 $ctx->editMessageText(' 💬 لطفاً تبلیغ را ارسال کنید...
 
-💠 میتوانید حالت تبلیغ را هم از زیر مشخص کنید!',['reply_markup' => ['inline_keyboard' => [
-                    [['text' => 'غیر مستقیم', 'callback_data' => '1'],['text' => 'فورواردی', 'callback_data' => '2'],['text' => 'مستقیم ✔️', 'callback_data' => '3'],],
-                    [['text' => '🔙','callback_data' => 'hMain']]
+💠 میتوانید حالت تبلیغ را هم از زیر مشخص کنید!', ['reply_markup' => ['inline_keyboard' => [
+                    [['text' => 'غیر مستقیم', 'callback_data' => '1'], ['text' => 'فورواردی', 'callback_data' => '2'], ['text' => 'مستقیم ✔️', 'callback_data' => '3'],],
+                    [['text' => '🔙', 'callback_data' => 'hMain']]
                 ]]]);
-                setUserData($ctx, 'Ad',$Ad);
+                setUserData($ctx, 'Ad', $Ad);
                 break;
 
             case 'hMain':
@@ -627,9 +636,10 @@ function hNewAdGet(Context $ctx){
     }
 }
 
-function AdPanel(Context $ctx){
+function AdPanel(Context $ctx)
+{
     if ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
-        if (isset($ctx->get('uData')['AdNum'])){
+        if (isset($ctx->get('uData')['AdNum'])) {
             $Admins = $ctx->get('gData') ?? [];
             $uId = $ctx->getEffectiveUser()->getId();
             $AdNum = $ctx->get('uData')['AdNum'];
@@ -641,7 +651,7 @@ function AdPanel(Context $ctx){
 
                         $Admins[$uId]['Ads']['o'][$AdNum] = $Admins[$uId]['Ads']['c'][$AdNum];
                         unset($Admins[$uId]['Ads']['c'][$AdNum]);
-                        $ctx->setGlobalDataItem('Admins',$Admins);
+                        $ctx->setGlobalDataItem('Admins', $Admins);
 
 
                         $ctx->editMessageText('✅  بنظر تبلیغ شما  ارسال شده است!
@@ -657,7 +667,7 @@ function AdPanel(Context $ctx){
                                 [['text' => 'تغییر پست', 'callback_data' => 'post'], ['text' => 'تغییر نام', 'callback_data' => 'name']],
                                 [['text' => '🔙', 'callback_data' => 'hMain']]
                             ]]]);
-                    }else{
+                    } else {
                         $ctx->answerCallbackQuery(['text' => '❎ در حال حاضر تبلیغ ارسال شده!']);
                         $ctx->editMessageText('☑️ لطفا برای تایید ارسال دوباره اجباری شروع را بزنید!
 
@@ -666,20 +676,20 @@ function AdPanel(Context $ctx){
 
 💡پس از توقف تبلیغ گزارش نهایی آن در کانال مربوطه ارسال خواهد شد...',
                             ['reply_markup' => ['inline_keyboard' => [
-                                [['text' => 'توقف✖️', 'callback_data' => 'stop'],['text' => '⚡️شروع', 'callback_data' => 'ConfirmStart']],
+                                [['text' => 'توقف✖️', 'callback_data' => 'stop'], ['text' => '⚡️شروع', 'callback_data' => 'ConfirmStart']],
                                 [['text' => ' توقف زماندار⏳', 'callback_data' => 'stop-time'], ['text' => '⏳شروع زماندار', 'callback_data' => 'start-time']],
                                 [['text' => '💬 کانال ها', 'callback_data' => 'ch']],
-                                [['text' => 'تغییر پست', 'callback_data' => 'post'],['text' => 'تغییر نام', 'callback_data' => 'name']],
-                                [['text' => '🔙','callback_data' => 'hMain']]
+                                [['text' => 'تغییر پست', 'callback_data' => 'post'], ['text' => 'تغییر نام', 'callback_data' => 'name']],
+                                [['text' => '🔙', 'callback_data' => 'hMain']]
                             ]]]);
                     }
                     break;
                 case 'ConfirmStart':
-                    if (isset($Admins[$uId]['Ads']['o'][$AdNum])){
-                        send2Channels($ctx,$Admins[$uId]['Ads']['o'][$AdNum],$AdNum);
+                    if (isset($Admins[$uId]['Ads']['o'][$AdNum])) {
+                        send2Channels($ctx, $Admins[$uId]['Ads']['o'][$AdNum], $AdNum);
 
                         unset($Admins[$uId]['Ads']['c'][$AdNum]);
-                        $ctx->setGlobalDataItem('Admins',$Admins);
+                        $ctx->setGlobalDataItem('Admins', $Admins);
 
                         $ctx->editMessageText('✅  بنظر تبلیغ شما  ارسال شده است!
 
@@ -694,7 +704,7 @@ function AdPanel(Context $ctx){
                                 [['text' => 'تغییر پست', 'callback_data' => 'post'], ['text' => 'تغییر نام', 'callback_data' => 'name']],
                                 [['text' => '🔙', 'callback_data' => 'hMain']]
                             ]]]);
-                    }else{
+                    } else {
                         $ctx->answerCallbackQuery(['text' => '❌ خطای جدی رخ داده، تبلیغ گم شده!!']);
                     }
                     break;
@@ -719,7 +729,7 @@ function AdPanel(Context $ctx){
                                 [['text' => 'تغییر پست', 'callback_data' => 'post'], ['text' => 'تغییر نام', 'callback_data' => 'name']],
                                 [['text' => '🔙', 'callback_data' => 'hMain']]
                             ]]]);
-                    }else{
+                    } else {
                         $ctx->answerCallbackQuery(['text' => '❎ در حال حاضر تبلیغ ارسال نشده!']);
                         $ctx->editMessageText('☑️ لطفا برای تایید توقف و تلاش مجدد برای حذف از کانالها توقف را بزنید!
 
@@ -728,16 +738,16 @@ function AdPanel(Context $ctx){
 
 💡پس از توقف تبلیغ گزارش نهایی آن در کانال مربوطه ارسال خواهد شد...',
                             ['reply_markup' => ['inline_keyboard' => [
-                                [['text' => 'توقف✖️', 'callback_data' => 'ConfirmStop'],['text' => '⚡️شروع', 'callback_data' => 'start']],
+                                [['text' => 'توقف✖️', 'callback_data' => 'ConfirmStop'], ['text' => '⚡️شروع', 'callback_data' => 'start']],
                                 [['text' => ' توقف زماندار⏳', 'callback_data' => 'stop-time'], ['text' => '⏳شروع زماندار', 'callback_data' => 'start-time']],
                                 [['text' => '💬 کانال ها', 'callback_data' => 'ch']],
-                                [['text' => 'تغییر پست', 'callback_data' => 'post'],['text' => 'تغییر نام', 'callback_data' => 'name']],
-                                [['text' => '🔙','callback_data' => 'hMain']]
+                                [['text' => 'تغییر پست', 'callback_data' => 'post'], ['text' => 'تغییر نام', 'callback_data' => 'name']],
+                                [['text' => '🔙', 'callback_data' => 'hMain']]
                             ]]]);
                     }
                     break;
                 case 'ConfirmStop':
-                    if (isset($Admins[$uId]['Ads']['c'][$AdNum])){
+                    if (isset($Admins[$uId]['Ads']['c'][$AdNum])) {
                         del2Channels($ctx, $Admins[$uId]['Ads']['c'][$AdNum]);
                         unset($Admins[$uId]['Ads']['o'][$AdNum]);
                         $ctx->setGlobalDataItem('Admins', $Admins);
@@ -755,7 +765,7 @@ function AdPanel(Context $ctx){
                                 [['text' => 'تغییر پست', 'callback_data' => 'post'], ['text' => 'تغییر نام', 'callback_data' => 'name']],
                                 [['text' => '🔙', 'callback_data' => 'hMain']]
                             ]]]);
-                    }else{
+                    } else {
                         $ctx->answerCallbackQuery(['text' => '❌ خطای جدی رخ داده، تبلیغ گم شده!!']);
                     }
                     break;
@@ -780,25 +790,27 @@ function AdPanel(Context $ctx){
                     hMain($ctx);
                     break;
             }
-        }else{
+        } else {
             $ctx->answerCallbackQuery(['text' => '❌ خطایی رخ داد تبلیغ رو گم کردیم! دوباره تلاش کنید...']);
             hMain($ctx);
         }
     }
 }
-function send2Channels(Context $ctx, $Ad, $AdNum){
+
+function send2Channels(Context $ctx, $Ad, $AdNum)
+{
     $Channels = array_keys($Ad['Channels']);
-    switch ($Ad['type'] ?? 1){
+    switch ($Ad['type'] ?? 1) {
         case '1':
         case '2':
-            foreach ($Channels as $Channel){
-                $ctx->forwardMessage($Channel,$Ad['send']['chatId'],$Ad['send']['msg'])->then(
-                    function ($id) use ($ctx, $Channel, $AdNum){
+            foreach ($Channels as $Channel) {
+                $ctx->forwardMessage($Channel, $Ad['send']['chatId'], $Ad['send']['msg'])->then(
+                    function ($id) use ($ctx, $Channel, $AdNum) {
                         $uId = $ctx->getEffectiveUser()->getId();
-                        $ctx->getGlobalDataItem('Admins')->then(function ($Admins) use ($ctx, $uId, $AdNum, $Channel, $id){
+                        $ctx->getGlobalDataItem('Admins')->then(function ($Admins) use ($ctx, $uId, $AdNum, $Channel, $id) {
                             $Admins[$uId]['Ads']['o'][$AdNum]['Channels'][$Channel] = $id->getMessageId();
                             unset($Admins[$uId]['Ads']['c'][$AdNum]);
-                            $ctx->setGlobalDataItem('Admins',$Admins);
+                            $ctx->setGlobalDataItem('Admins', $Admins);
                         });
                     }
                 );
@@ -806,12 +818,12 @@ function send2Channels(Context $ctx, $Ad, $AdNum){
             break;
         case '3':
             foreach ($Channels as $Channel) {
-                $ctx->copyMessage($Channel,$Ad['send']['chatId'],$Ad['send']['msg'])->then(
-                    function ($id) use ($Ad, $Channel,$AdNum, $ctx){
+                $ctx->copyMessage($Channel, $Ad['send']['chatId'], $Ad['send']['msg'])->then(
+                    function ($id) use ($Ad, $Channel, $AdNum, $ctx) {
                         $uId = $ctx->getEffectiveUser()->getId();
-                        $ctx->getGlobalDataItem('Admins')->then(function ($Admins) use ($ctx, $uId, $AdNum, $Channel, $id){
+                        $ctx->getGlobalDataItem('Admins')->then(function ($Admins) use ($ctx, $uId, $AdNum, $Channel, $id) {
                             $Admins[$uId]['Ads']['o'][$AdNum]['Channels'][$Channel] = $id->getMessageId();
-                            $ctx->setGlobalDataItem('Admins',$Admins);
+                            $ctx->setGlobalDataItem('Admins', $Admins);
                         });
                     }
                 );
@@ -819,7 +831,9 @@ function send2Channels(Context $ctx, $Ad, $AdNum){
             break;
     }
 }
-function del2Channels(Context $ctx, $Ad) {
+
+function del2Channels(Context $ctx, $Ad)
+{
     $Channels = array_keys($Ad['Channels']);
     foreach ($Channels as $Channel) {
         $ctx->deleteMessage($Channel, $Ad['Channels'][$Channel]);
@@ -830,7 +844,7 @@ function del2Channels(Context $ctx, $Ad) {
 function hNewList(Context $ctx)
 {
     if ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
-        if ($ctx->getCallbackQuery()->getData() == 'hMain'){
+        if ($ctx->getCallbackQuery()->getData() == 'hMain') {
             $ctx->answerCallbackQuery(['text' => '🔅درحال برگشت به منوی اصلی ...']);
             hMain($ctx);
         }
@@ -843,22 +857,22 @@ function hNewList(Context $ctx)
             $Admins = $ctx->get('gData') ?? [];
             $uId = $ctx->getEffectiveUser()->getId();
 
-            if (!isset($Admins[$uId]['Lists'][$text])){
+            if (!isset($Admins[$uId]['Lists'][$text])) {
                 $Admins[$uId]['Lists'][$text]['Channels'] = [];
                 $ctx->setGlobalDataItem('Admins', $Admins);
 
                 $ctx->sendMessage("✅ دسته ی '$text' با موفقیت ایجاد شد!");
-                hMain($ctx,false);
-            }else
+                hMain($ctx, false);
+            } else
                 $ctx->sendMessage("❌ دسته ی '$text' از قبل ایجاد شده بود، نام دیگری انتخاب کنید!");
 
 
-            hMain($ctx,false);
+            hMain($ctx, false);
         }
     }
 }
 
-function hChannels (Context $ctx)
+function hChannels(Context $ctx)
 {
     $uId = $ctx->getEffectiveUser()->getId();
     if ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
@@ -891,17 +905,17 @@ function hChannels (Context $ctx)
                 $Admins = $ctx->get('gData') ?? [];
                 $Channels = $Admins[$uId]['Channels'];
 
-                if (in_array($data,array_keys($Channels))){
+                if (in_array($data, array_keys($Channels))) {
                     $count = 0;
-                    foreach ($Admins[$uId]['Lists'] as $key => $list){
-                        if (in_array($data,$Admins[$uId]['Lists'][$key]['Channels'])){
+                    foreach ($Admins[$uId]['Lists'] as $key => $list) {
+                        if (in_array($data, $Admins[$uId]['Lists'][$key]['Channels'])) {
                             unset($Admins[$uId]['Lists'][$key]['Channels'][array_search($data, $Admins[$uId]['Lists'][$key]['Channels'])]);
                         }
                         $count++;
                     }
-                    if ($count < 1){
+                    if ($count < 1) {
                         $ctx->answerCallbackQuery(['text' => '💤 کانال در هیچ دسته ای استفاده نشده بود!']);
-                    }else{
+                    } else {
                         $ctx->answerCallbackQuery(['text' => "☑️🗑 با موفقیت از $count دسته حذف شد! "]);
                     }
 
@@ -913,34 +927,37 @@ function hChannels (Context $ctx)
                         $show[$channel['name']] = $key;
                     }
 
-                    $IK = BuildInlineKeyboard(array_keys($show),array_values($show),2);
-                    $IK[count($IK)][0] = ['text' => '➕','callback_data' => 'hNewChannel'];
-                    $IK[count($IK)][0] = ['text' => '🔙','callback_data' => 'hMain'];
+                    $IK = BuildInlineKeyboard(array_keys($show), array_values($show), 2);
+                    $IK[count($IK)][0] = ['text' => '➕', 'callback_data' => 'hNewChannel'];
+                    $IK[count($IK)][0] = ['text' => '🔙', 'callback_data' => 'hMain'];
 
                     $ctx->editMessageText('💡برای حذف کانال روی اسم آن کلیک کنید...
 
 ➕با دکمه زیر چنل های خود را اضافه کنید.',
                         ['reply_markup' => ['inline_keyboard' => $IK]]);
-                    $ctx->setGlobalDataItem('Admins',$Admins);
+                    $ctx->setGlobalDataItem('Admins', $Admins);
                 }
         }
     }
 }
-function hNewChannel(Context $ctx){
+
+function hNewChannel(Context $ctx)
+{
     if ($ctx->getUpdate()->getUpdateType() === Message::class) {
         if ($ctx->getMessage()->getForwardFromChat() !== null) {
-            getChatMember($ctx->getMessage()->getForwardFromChat()->getId(),explode(':',$_ENV['BOT_TOKEN'])[0],$ctx);
+            getChatMember($ctx->getMessage()->getForwardFromChat()->getId(), explode(':', $_ENV['BOT_TOKEN'])[0], $ctx);
         } elseif ($ctx->getMessage()->getText() !== null) {
-            getChatMember($ctx->getMessage()->getText(),explode(':',$_ENV['BOT_TOKEN'])[0],$ctx);
+            getChatMember($ctx->getMessage()->getText(), explode(':', $_ENV['BOT_TOKEN'])[0], $ctx);
         }
-    }elseif ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
-        if ($ctx->getCallbackQuery()->getData() == 'hMain'){
+    } elseif ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
+        if ($ctx->getCallbackQuery()->getData() == 'hMain') {
             $ctx->answerCallbackQuery(['text' => '🔅درحال برگشت به منوی اصلی ...']);
             hMain($ctx);
         }
     }
 }
-function getChatMember($ChatId,$UserID,Context $ctx)
+
+function getChatMember($ChatId, $UserID, Context $ctx)
 {
     $uId = $ctx->getEffectiveUser()->getId();
 
@@ -962,7 +979,7 @@ function getChatMember($ChatId,$UserID,Context $ctx)
                             $Admins[$uId]['Channels'][$ChatId]['name'] = $title;
                             if ($result->getUsername() !== null) $Admins[$uId]['Channels'][$ChatId]['username'] = $result->getUsername();
                             $ctx->setGlobalDataItem('Admins', $Admins);
-                            setUserData($ctx, 'Channel',$ChatId);
+                            setUserData($ctx, 'Channel', $ChatId);
 
                             $ctx->sendMessage("✅ کانال '$title' با موفقیت اضافه شد!
 
@@ -974,28 +991,28 @@ function getChatMember($ChatId,$UserID,Context $ctx)
 
 
 ⚠️ در انتخاب گروه دقت کنید؛ امکان ویرایش گروه تنها با حذف و اضافه کردن مجدد کانال وجود دارد!
-⚠️ در انتخاب این ویژگی دقت کنید؛ گزینه ای برای غیر فعال سازی این امکان وجود ندارد!",['reply_markup' =>
+⚠️ در انتخاب این ویژگی دقت کنید؛ گزینه ای برای غیر فعال سازی این امکان وجود ندارد!", ['reply_markup' =>
                                 ['inline_keyboard' => [
-                                    [['text' => "➕ افزودن به گروه ➕", 'url' => 'https://t.me/AdvertisingDarsbot?startgroup='.$ChatId]],
+                                    [['text' => "➕ افزودن به گروه ➕", 'url' => 'https://t.me/AdvertisingDarsbot?startgroup=' . $ChatId]],
                                 ]]]);
 
                             $lists = $Admins[$uId]['Lists'];
 
-                            $IK = BuildInlineKeyboard(array_keys($lists),array_keys($lists),2);
-                            $IK[count($IK)][0] = ['text' => '☑️','callback_data' => 'done'];
+                            $IK = BuildInlineKeyboard(array_keys($lists), array_keys($lists), 2);
+                            $IK[count($IK)][0] = ['text' => '☑️', 'callback_data' => 'done'];
                             $ctx->sendMessage("🙄 لطفا یک یا چند دسته بندی را برای کانال انتخاب کنید:",
                                 ['reply_markup' => ['inline_keyboard' => $IK]]);
-                            nextStep('hAdd2List',$ctx);
-                        }else{
+                            nextStep('hAdd2List', $ctx);
+                        } else {
                             $ctx->sendMessage('❌ لطفا پیام را از کانال فوروارد کنید! بنظر میرسد از چتی غیر از نوع کانال فوروارد شده...');
                         }
                     });
-                }else{
+                } else {
                     $ctx->sendMessage('❌ ربات در کانال مورد نظر ادمین نیست! باید ادمین باشه خب ...');
                 }
             },
             function (TelegramException $result) use ($ctx) {
-                switch ($result->getErrorCode()){
+                switch ($result->getErrorCode()) {
                     case '400':
                         $ctx->sendMessage('❌ ۴۰۰ - ایدی مورد نظر پیدا نشد! ');
                         break;
@@ -1004,33 +1021,34 @@ function getChatMember($ChatId,$UserID,Context $ctx)
                 }
             },
         );
-    }else{
+    } else {
         $ctx->sendMessage("❌ کانال از قبل ثبت شده بود، کانال دیگری انتخاب کنید!");
     }
 }
+
 function hAdd2List(Context $ctx)
 {
     if ($ctx->getUpdate()->getUpdateType() === CallbackQuery::class) {
         $Admins = $ctx->get('gData') ?? [];
         $uId = $ctx->getEffectiveUser()->getId();
 
-        if (isset($ctx->get('uData')['lists'])){
+        if (isset($ctx->get('uData')['lists'])) {
             $lists = $ctx->get('uData')['lists'];
-        }else{
+        } else {
             $lists = [];
-            foreach ($Admins[$uId]['Lists'] as $key => $list){
+            foreach ($Admins[$uId]['Lists'] as $key => $list) {
                 $lists[$key]['sel'] = false;
             }
-            setUserData($ctx, 'lists',$lists);
+            setUserData($ctx, 'lists', $lists);
         }
 
-        $show = function (array $lists){
+        $show = function (array $lists) {
             $show = [];
             $listKey = array_keys($lists);
             foreach ($listKey as $key => $list) {
-                if ($lists[$list]['sel'] === true){
-                    $show[$key] = '✔️'. $list;
-                }else{
+                if ($lists[$list]['sel'] === true) {
+                    $show[$key] = '✔️' . $list;
+                } else {
                     $show[$key] = $list;
                 }
             }
@@ -1045,51 +1063,53 @@ function hAdd2List(Context $ctx)
             $Channel = $ctx->get('uData')['Channel'];
 
             foreach ($listKey as $list) {
-                if ($lists[$list]['sel'] === true){
-                    if (!in_array($Channel,$Admins[$uId]['Lists'][$list]['Channels'] ?? []))
+                if ($lists[$list]['sel'] === true) {
+                    if (!in_array($Channel, $Admins[$uId]['Lists'][$list]['Channels'] ?? []))
                         $Admins[$uId]['Lists'][$list]['Channels'][] = $Channel;
                     $count++;
                 }
             }
             if ($count < 1)
-                $ctx->answerCallbackQuery(['text'=>'⚠️ حداقل یکی را انتخاب کنید!']);
-            else{
-                $ctx->setGlobalDataItem('Admins',$Admins);
+                $ctx->answerCallbackQuery(['text' => '⚠️ حداقل یکی را انتخاب کنید!']);
+            else {
+                $ctx->setGlobalDataItem('Admins', $Admins);
                 deleteUserData($ctx, 'lists');
                 deleteUserData($ctx, 'Channel');
 
-                $ctx->answerCallbackQuery(['text'=> "✅ با موفقیت به $count دسته اضافه شد!"]);
+                $ctx->answerCallbackQuery(['text' => "✅ با موفقیت به $count دسته اضافه شد!"]);
                 hMain($ctx);
             }
-        }else{
-            if (in_array($data,array_keys($lists))){
+        } else {
+            if (in_array($data, array_keys($lists))) {
                 $lists[$data]['sel'] = !$lists[$data]['sel'];
 
                 $show = $show($lists);
 
-                $IK = BuildInlineKeyboard(array_values($show),array_keys($lists),2);
-                $IK[count($IK)][0] = ['text' => '☑️','callback_data' => 'done'];
+                $IK = BuildInlineKeyboard(array_values($show), array_keys($lists), 2);
+                $IK[count($IK)][0] = ['text' => '☑️', 'callback_data' => 'done'];
 
                 $ctx->editMessageText('🎯 انتخاب شد!
-💡موارد بیشتر انتخاب کنید یا ☑️ را بزنید...',['reply_markup' => ['inline_keyboard' => $IK]]);
+💡موارد بیشتر انتخاب کنید یا ☑️ را بزنید...', ['reply_markup' => ['inline_keyboard' => $IK]]);
 
-                setUserData($ctx, 'lists',$lists);
+                setUserData($ctx, 'lists', $lists);
             }
         }
     }
 
 }
 
-$bot->middleware(function (Context $ctx, $next){
-    $ctx->getGlobalDataItem('Admins')->then(function ($gData) use ($ctx){
-        $ctx->set('gData',$gData);
+$bot->middleware(function (Context $ctx, $next) {
+    $ctx->getGlobalDataItem('Admins')->then(function ($gData) use ($ctx) {
+        $ctx->set('gData', $gData);
     });
 
     $ctx->getUserDataItem('data')->then(function ($uData) use ($ctx) {
-        if (($uData['admin'] ?? false) === false || !isset($uData['rank'])){
-            if (in_array($ctx->getEffectiveUser()->getId(),explode(',',$_ENV['ADMINS']))){
-                setUserData($ctx, 'admin',true);    $uData['admin'] = true;
-                setUserData($ctx, 'rank','headAdmin');  $uData['rank'] = 'headAdmin';
+        if (($uData['admin'] ?? false) === false || !isset($uData['rank'])) {
+            if (in_array($ctx->getEffectiveUser()->getId(), explode(',', $_ENV['ADMINS']))) {
+                setUserData($ctx, 'admin', true);
+                $uData['admin'] = true;
+                setUserData($ctx, 'rank', 'headAdmin');
+                $uData['rank'] = 'headAdmin';
             }
         }
         $ctx->set('uData', $uData);
@@ -1101,22 +1121,24 @@ function setUserData(Context $ctx, $key, $input_data): void
 {
     $data = $ctx->get('uData');
     $data[$key] = $input_data;
-    $ctx->set('uData',$data);
-    $ctx->setUserDataItem('data',$data);
+    $ctx->set('uData', $data);
+    $ctx->setUserDataItem('data', $data);
 }
+
 function deleteUserData(Context $ctx, $key): void
 {
     $data = $ctx->get('uData');
     unset($data[$key]);
-    $ctx->set('uData',$data);
-    $ctx->setUserDataItem('data',$data);
+    $ctx->set('uData', $data);
+    $ctx->setUserDataItem('data', $data);
 }
+
 //save new Cache!
-$bot->getLoop()->addPeriodicTimer(5,function () use ($cache){
+$bot->getLoop()->addPeriodicTimer(5, function () use ($cache) {
     $_cache = [];
     $_cache['data'] = $cache->data;
     $_cache['expires'] = $cache->expires;
-    file_put_contents(__DIR__.'/.cache',json_encode($_cache, JSON_PRETTY_PRINT));
+    file_put_contents(__DIR__ . '/.cache', json_encode($_cache, JSON_PRETTY_PRINT));
 });
 $bot->run();
 
@@ -1127,20 +1149,20 @@ function BuildInlineKeyboard($text = [], $cb = [], int $sort = 1): array
     $keyboard = [];
     foreach ($text as $add) {
         $keyboard[$Line][$count_added]['text'] = $add;
-        $count_added+= 1;
+        $count_added += 1;
         if ($count_added == $sort) {
-            $count_added-= $sort;
-            $Line+= 1;
+            $count_added -= $sort;
+            $Line += 1;
         }
     }
     $Line = 0;
     $count_added = 0;
     foreach ($cb as $cb_add) {
         $keyboard[$Line][$count_added]['callback_data'] = $cb_add;
-        $count_added+= 1;
+        $count_added += 1;
         if ($count_added == $sort) {
-            $count_added-= $sort;
-            $Line+= 1;
+            $count_added -= $sort;
+            $Line += 1;
         }
     }
     return $keyboard;
