@@ -1,4 +1,17 @@
 {
+  "name": "awohsen/dastyarpro",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "awohsen",
+      "email": "awohsen@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "": "src/"
+    }
+  },
   "repositories": [
     {
       "type": "vcs",
@@ -6,10 +19,15 @@
     }
   ],
   "require": {
-    "php": "^7.3 || ^8.0",
+    "php": "^8.0",
     "ext-json": "*",
     "badfarm/zanzara": "dev-develop",
     "vlucas/phpdotenv": "^5.5",
     "monolog/monolog": "^2.8"
+  },
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": false
+    }
   }
 }

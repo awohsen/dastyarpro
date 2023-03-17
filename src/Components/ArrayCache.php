@@ -1,14 +1,29 @@
 <?php
 
+/*
+ * Copyright (c) 2012 Christian Lück, Cees-Jan Kiewiet, Jan Sorgalla, Chris Boden, Igor Wiedler
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is furnished
+ * to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ */
+
+namespace Components;
+
 use React\Cache\CacheInterface;
 use React\Promise;
 
 class ArrayCache implements CacheInterface
 {
-    private $limit;
-    public $data = array();
-    public $expires = array();
-    private $supportsHighResolution;
+    private ?int $limit;
+    public array $data = array();
+    public array $expires = array();
+    private bool $supportsHighResolution;
 
     /**
      * The `ArrayCache` provides an in-memory implementation of the [`CacheInterface`](#cacheinterface).
@@ -47,7 +62,7 @@ class ArrayCache implements CacheInterface
      *
      * @param int|null $limit maximum number of entries to store in the LRU cache
      */
-    public function __construct($limit = null)
+    public function __construct(int $limit = null)
     {
         $this->limit = $limit;
 
