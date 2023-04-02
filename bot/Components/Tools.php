@@ -165,7 +165,7 @@ class Tools
 
     public static function inputValidator(Context $ctx, array $values): bool
     {
-        return $ctx->getMessage()->getText() !== null && in_array($ctx->getmessage()->getText(), $values);
+        return $ctx->getMessage()->getText() && in_array($ctx->getmessage()->getText(), $values);
     }
 
     public static function saveCache($cache): void

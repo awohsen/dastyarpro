@@ -96,7 +96,7 @@ class ChannelsSection
     public static function newChannel(Context $ctx, $newChannelID = null): void
     {
         if (!isset($newChannelID)) {
-            if ($ctx->getCallbackQuery() !== null) $ctx->answerCallbackQuery();
+            if ($ctx->getCallbackQuery()) $ctx->answerCallbackQuery();
             self::receiveChannelID($ctx);
             return;
         }
@@ -206,7 +206,7 @@ class ChannelsSection
             try {
                 /* @var Chat $chat */
                 $chat = yield $ctx->getChat($channelID);
-                if ($chat->getUsername() !== null) {
+                if ($chat->getUsername()) {
                     return Tools::abstract('@' . $chat->getUsername(), 32, '');
                 }
                 return Tools::abstract($chat->getTitle(), 32);
