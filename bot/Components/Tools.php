@@ -2,31 +2,60 @@
 
 namespace Components;
 
+/**
+ * Return an inline button array
+ *
+ * @param string $txt button text
+ * @param string $cb button callback data
+ * @return array ['text' => $txt, 'callback_data' => $cb]
+ */
+function ib(string $txt, string $cb): array
+{
+    return ['text' => $txt, 'callback_data' => $cb];
+}
+
+/**
+ * Returns a Reply Keyboard Remove array
+ * @return array ['remove_keyboard' => true]
+ */
+function replyKeyboardRemove(): array
+{
+    return ['remove_keyboard' => true];
+}
+
 class Tools
 {
-
-    public static function toEnNumber($input): string
+    /**
+     * Translates Arabic and Persian numbers to English(Latin) numbers
+     *
+     * @param string $input text to translate
+     * @return string which has only latin numbers
+     */
+    public static function toEnNumber(string $input): string
     {
         return strtr($input, ['۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9', '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9']);
     }
 
-    public static function abstract($input, $allowed = 45): string
+    /**
+     * Returns input which is limited with ending; only if it exceeds allowed character amount
+     *
+     * @param string $input
+     * @param int $allowed
+     * @param string $ending
+     * @return string
+     */
+    public static function
+    abstract(string $input, int $allowed = 45, string $ending = '…'): string
     {
-        return mb_strlen($input) < $allowed ? $input : mb_substr($input, '0', $allowed, mb_detect_encoding($input)) . '...';
+        return mb_strlen($input) < $allowed ? $input : mb_substr($input, '0', $allowed - mb_strlen($ending), mb_detect_encoding($input)) . $ending;
     }
 
-    public static function bk(array|string...$buttons): array
-    {
-        array_unshift($buttons, 0);
-        return call_user_func_array([__CLASS__, 'bkl'], $buttons);
-    }
-
-    public static function bkl(int $lineLimit, array|string...$buttons): array
+    public static function bk(int $lineLimit, bool $inlineKeyboard, array|string...$buttons): array
     {
         $count = count($buttons);
         switch (true) {
             case $count < 1:
-                return self::replyKeyboardRemove();
+                return replyKeyboardRemove();
             case $count == 1:
                 if (is_array($buttons) && is_array($buttons[0]))
                     $buttons = $buttons[0];
@@ -44,10 +73,10 @@ class Tools
         foreach ($buttons as $button) {
             if (is_array($button)) {
                 foreach ($button as $innerIndex => $innerButton) {
-                    $keyboard[$line][$innerIndex] = self::detectButtonType($innerButton);
+                    $keyboard[$line][$innerIndex] = self::detectButtonType($innerButton, $inlineKeyboard);
                 }
             } else if (is_string($button)) {
-                $keyboard[$line][$index] = self::detectButtonType($button);
+                $keyboard[$line][$index] = self::detectButtonType($button, $inlineKeyboard);
             }
 
             $index++;
@@ -57,17 +86,25 @@ class Tools
             }
         }
 
-        return ['keyboard' => $keyboard];
+        return [$inlineKeyboard ? 'inline_keyboard': 'keyboard' => $keyboard];
     }
 
-    public static function detectButtonType(string $button): array
+    public static function detectButtonType($button, bool $inlineKeyboard = false): array
     {
+        if (is_array($button) && isset($button['text'])) return $button;
         if (str_starts_with($button, 'reqcontact_'))
             return ['text' => str_replace('reqcontact_', '', $button), 'request_contact' => true];
         if (str_starts_with($button, 'reqlocation_'))
             return ['text' => str_replace('reqlocation_', '', $button), 'request_location' => true];
+        if (str_contains($button, ' %% ')){
+            $ex = explode(' %% ', $button);
+            if (count($ex) == 2){
+                return ['text' => $ex[0], 'callback_data' => $ex[1]];
+            }
+        }
 
-        return ['text' => $button];
+
+        return $inlineKeyboard ? ['text' => $button, 'callback_data' => 'placeholder'] : ['text' => $button];
     }
 
     public static function BuildInlineKeyboard($text = [], $cb = [], int $sort = 1): array
@@ -96,17 +133,23 @@ class Tools
         return $keyboard;
     }
 
-    public static function replyKeyboardRemove(): array
+    public static function replyInlineKeyboard(array $keyboard, string $placeholder = null, bool $selective = false): array
     {
-        return ['remove_keyboard' => true];
+        if (!isset($keyboard['keyboard']) && !isset($keyboard['inline_keyboard']) && !isset($keyboard['remove_keyboard'])) {
+            array_unshift($keyboard, 0, true);
+            $keyboard = call_user_func_array([__CLASS__, 'bk'], $keyboard);
+        }
+        // todo: add loop to turn normal keyboard buttons to inline with blank callback data
+        return self::replyKeyboard($keyboard, $placeholder, false, $selective);
     }
 
     public static function replyKeyboard(array $keyboard, string $placeholder = null, bool $resize = true, bool $selective = false, bool $oneTime = false): array
     {
         if (count($keyboard) >= 1)
-            if (!isset($keyboard['keyboard']) && !isset($keyboard['remove_keyboard'])) {
-                array_unshift($keyboard, 0);
-                $keyboard = call_user_func_array([__CLASS__, 'bkl'], $keyboard);
+            if (!isset($keyboard['keyboard']) && !isset($keyboard['inline_keyboard']) && !isset($keyboard['remove_keyboard'])) {
+                // add 0 as line break for bk
+                array_unshift($keyboard, 0, false);
+                $keyboard = call_user_func_array([__CLASS__, 'bk'], $keyboard);
             }
 
         $replyMarkup['resize_keyboard'] = $resize;
@@ -125,7 +168,7 @@ class Tools
         return $ctx->getMessage()->getText() !== null && in_array($ctx->getmessage()->getText(), $values);
     }
 
-    public static function saveCache($cache): bool|int
+    public static function saveCache($cache): void
     {
         $_cache = [];
         $_cache['data'] = $cache->data;
@@ -135,7 +178,8 @@ class Tools
             mkdir(__DIR__ . '/../../data/');
         }
 
-        return file_put_contents(__DIR__ . '/../../data/.cache', json_encode($_cache));
+        file_put_contents(__DIR__ . '/../../data/.cache', json_encode($_cache));
+        unset($_cache);
     }
 
     public static function loadCache(): ArrayCache

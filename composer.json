@@ -9,7 +9,7 @@
   ],
   "autoload": {
     "psr-4": {
-      "": "src/"
+      "": "bot/"
     }
   },
   "repositories": [
@@ -22,8 +22,11 @@
     "php": "^8.0",
     "ext-json": "*",
     "badfarm/zanzara": "dev-develop",
+    "react/async": "^4.0",
+    "react/mysql": "0.6.x-dev",
     "vlucas/phpdotenv": "^5.5",
-    "monolog/monolog": "^2.8"
+    "monolog/monolog": "^2.9",
+    "bramus/monolog-colored-line-formatter": "~3.0.0"
   },
   "config": {
     "allow-plugins": {

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "40027bd94cc5e7fc9990367c9c2eaa1f",
+    "content-hash": "b811e691d03e3f262d4a96b848463fb5",
     "packages": [
         {
             "name": "badfarm/zanzara",
@@ -12,33 +12,33 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/awohsen/zanzara.git",
-                "reference": "5bb759402fe395ee0fab7283af99821a23d6eaff"
+                "reference": "c41c8d82caba8f99972bddd0ee8d0e9cf6d4ed98"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/awohsen/zanzara/zipball/5bb759402fe395ee0fab7283af99821a23d6eaff",
-                "reference": "5bb759402fe395ee0fab7283af99821a23d6eaff",
+                "url": "https://api.github.com/repos/awohsen/zanzara/zipball/c41c8d82caba8f99972bddd0ee8d0e9cf6d4ed98",
+                "reference": "c41c8d82caba8f99972bddd0ee8d0e9cf6d4ed98",
                 "shasum": ""
             },
             "require": {
-                "clue/http-proxy-react": "^1.6",
+                "clue/http-proxy-react": "^1.8",
                 "ext-json": "*",
                 "ext-readline": "*",
-                "netresearch/jsonmapper": "^4.0",
+                "netresearch/jsonmapper": "^4.1",
                 "opis/closure": "^3.6",
-                "php": ">=7.3",
-                "php-di/php-di": "^6.3",
-                "php-http/multipart-stream-builder": "^1.1",
-                "psr/container": "^1.0",
+                "php": ">=7.4",
+                "php-di/php-di": "^6.4",
+                "php-http/multipart-stream-builder": "^1.2",
+                "psr/container": "^1.1",
                 "psr/log": "^1.1",
-                "react/cache": "^1.1",
-                "react/event-loop": "^1.1",
-                "react/http": "^1.2"
+                "react/cache": "^1.2",
+                "react/event-loop": "^1.3",
+                "react/http": "^1.8"
             },
             "require-dev": {
-                "monolog/monolog": "^2.1",
-                "phpunit/phpunit": "^9.5",
-                "symfony/dotenv": "^5.2"
+                "monolog/monolog": "^2.9",
+                "phpunit/phpunit": "^9.6",
+                "symfony/dotenv": "^5.4"
             },
             "default-branch": true,
             "type": "library",
@@ -77,9 +77,100 @@
                 "telegram"
             ],
             "support": {
-                "source": "https://github.com/awohsen/zanzara/tree/develop"
+                "source": "https://github.com/awohsen/zanzara/tree/develop",
+                "issues": "https://github.com/awohsen/zanzara/issues"
             },
-            "time": "2023-01-03T09:00:58+00:00"
+            "time": "2023-04-01T05:37:24+00:00"
+        },
+        {
+            "name": "bramus/ansi-php",
+            "version": "3.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/bramus/ansi-php.git",
+                "reference": "f581b2fd322177e5fabd67af240811838c1c8fbc"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/bramus/ansi-php/zipball/f581b2fd322177e5fabd67af240811838c1c8fbc",
+                "reference": "f581b2fd322177e5fabd67af240811838c1c8fbc",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.4.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "~4.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Bramus\\Ansi\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Bramus Van Damme",
+                    "email": "bramus@bram.us",
+                    "homepage": "https://www.bram.us/"
+                }
+            ],
+            "description": "ANSI Control Functions and ANSI Control Sequences (Colors, Erasing, etc.) for PHP CLI Apps",
+            "support": {
+                "issues": "https://github.com/bramus/ansi-php/issues",
+                "source": "https://github.com/bramus/ansi-php/tree/3.1"
+            },
+            "time": "2021-10-28T10:45:05+00:00"
+        },
+        {
+            "name": "bramus/monolog-colored-line-formatter",
+            "version": "3.0.6",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/bramus/monolog-colored-line-formatter.git",
+                "reference": "708891d34cb431d9ed56da91a53ecc2d8afdc24e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/bramus/monolog-colored-line-formatter/zipball/708891d34cb431d9ed56da91a53ecc2d8afdc24e",
+                "reference": "708891d34cb431d9ed56da91a53ecc2d8afdc24e",
+                "shasum": ""
+            },
+            "require": {
+                "bramus/ansi-php": "^3.0.3",
+                "php": "^7.2|^8.0"
+            },
+            "require-dev": {
+                "monolog/monolog": "~2.0",
+                "phpunit/phpunit": "~7.0|^9.4"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Bramus\\Monolog\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Bramus Van Damme",
+                    "email": "bramus@bram.us",
+                    "homepage": "https://www.bram.us/"
+                }
+            ],
+            "description": "Colored Line Formatter for Monolog",
+            "support": {
+                "issues": "https://github.com/bramus/monolog-colored-line-formatter/issues",
+                "source": "https://github.com/bramus/monolog-colored-line-formatter/tree/3.0.6"
+            },
+            "time": "2021-12-05T09:10:49+00:00"
         },
         {
             "name": "clue/http-proxy-react",
@@ -766,16 +857,16 @@
         },
         {
             "name": "php-http/discovery",
-            "version": "1.15.2",
+            "version": "1.15.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-http/discovery.git",
-                "reference": "5cc428320191ac1d0b6520034c2dc0698628ced5"
+                "reference": "3ccd28dd9fb34b52db946abea1b538568e34eae8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-http/discovery/zipball/5cc428320191ac1d0b6520034c2dc0698628ced5",
-                "reference": "5cc428320191ac1d0b6520034c2dc0698628ced5",
+                "url": "https://api.github.com/repos/php-http/discovery/zipball/3ccd28dd9fb34b52db946abea1b538568e34eae8",
+                "reference": "3ccd28dd9fb34b52db946abea1b538568e34eae8",
                 "shasum": ""
             },
             "require": {
@@ -834,9 +925,9 @@
             ],
             "support": {
                 "issues": "https://github.com/php-http/discovery/issues",
-                "source": "https://github.com/php-http/discovery/tree/1.15.2"
+                "source": "https://github.com/php-http/discovery/tree/1.15.3"
             },
-            "time": "2023-02-11T08:28:41+00:00"
+            "time": "2023-03-31T14:40:37+00:00"
         },
         {
             "name": "php-http/message-factory",
@@ -1236,6 +1327,84 @@
             "time": "2021-05-03T11:20:27+00:00"
         },
         {
+            "name": "react/async",
+            "version": "v4.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/reactphp/async.git",
+                "reference": "2aa8d89057e1059f59666e4204100636249b7be0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/reactphp/async/zipball/2aa8d89057e1059f59666e4204100636249b7be0",
+                "reference": "2aa8d89057e1059f59666e4204100636249b7be0",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.1",
+                "react/event-loop": "^1.2",
+                "react/promise": "^3.0 || ^2.8 || ^1.2.1"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^9.3"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/functions_include.php"
+                ],
+                "psr-4": {
+                    "React\\Async\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Christian Lück",
+                    "email": "christian@clue.engineering",
+                    "homepage": "https://clue.engineering/"
+                },
+                {
+                    "name": "Cees-Jan Kiewiet",
+                    "email": "reactphp@ceesjankiewiet.nl",
+                    "homepage": "https://wyrihaximus.net/"
+                },
+                {
+                    "name": "Jan Sorgalla",
+                    "email": "jsorgalla@gmail.com",
+                    "homepage": "https://sorgalla.com/"
+                },
+                {
+                    "name": "Chris Boden",
+                    "email": "cboden@gmail.com",
+                    "homepage": "https://cboden.dev/"
+                }
+            ],
+            "description": "Async utilities and fibers for ReactPHP",
+            "keywords": [
+                "async",
+                "reactphp"
+            ],
+            "support": {
+                "issues": "https://github.com/reactphp/async/issues",
+                "source": "https://github.com/reactphp/async/tree/v4.0.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/WyriHaximus",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/clue",
+                    "type": "github"
+                }
+            ],
+            "time": "2022-07-11T14:21:02+00:00"
+        },
+        {
             "name": "react/cache",
             "version": "v1.2.0",
             "source": {
@@ -1560,6 +1729,57 @@
                 }
             ],
             "time": "2022-09-29T12:55:52+00:00"
+        },
+        {
+            "name": "react/mysql",
+            "version": "0.6.x-dev",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/friends-of-reactphp/mysql.git",
+                "reference": "a13dbbb296b7e231c6e6309e9a7312b7f078fb72"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/friends-of-reactphp/mysql/zipball/a13dbbb296b7e231c6e6309e9a7312b7f078fb72",
+                "reference": "a13dbbb296b7e231c6e6309e9a7312b7f078fb72",
+                "shasum": ""
+            },
+            "require": {
+                "evenement/evenement": "^3.0 || ^2.1 || ^1.1",
+                "php": ">=5.4.0",
+                "react/event-loop": "^1.2",
+                "react/promise": "^3 || ^2.7",
+                "react/promise-stream": "^1.4",
+                "react/promise-timer": "^1.9",
+                "react/socket": "^1.12"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^9.6 || ^5.7 || ^4.8.35",
+                "react/async": "^4 || ^3 || ^2"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "React\\MySQL\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Async MySQL database client for ReactPHP.",
+            "keywords": [
+                "async",
+                "database",
+                "mysql",
+                "reactphp"
+            ],
+            "support": {
+                "issues": "https://github.com/friends-of-reactphp/mysql/issues",
+                "source": "https://github.com/friends-of-reactphp/mysql/tree/0.6.x"
+            },
+            "time": "2023-02-06T06:46:44+00:00"
         },
         {
             "name": "react/promise",
@@ -2367,7 +2587,8 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "badfarm/zanzara": 20
+        "badfarm/zanzara": 20,
+        "react/mysql": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,
