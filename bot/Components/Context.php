@@ -2,12 +2,17 @@
 
 namespace Components;
 
+use React\MySQL\ConnectionInterface;
+use React\Promise\PromiseInterface;
+use Zanzara\Telegram\Type\CallbackQuery;
 use Zanzara\ZanzaraLogger;
 use Zanzara\Telegram\Type\Update;
 use Psr\Container\ContainerInterface;
 
 class Context extends \Zanzara\Context
 {
+
+    use Database;
 
     /**
      * @var ZanzaraLogger
@@ -19,6 +24,7 @@ class Context extends \Zanzara\Context
         parent::__construct($update, $container);
 
         $this->logger = $container->get(ZanzaraLogger::class);
+        $this->connection = $container->get(ConnectionInterface::class);
     }
 
     /**
@@ -27,6 +33,14 @@ class Context extends \Zanzara\Context
     public function log(): ZanzaraLogger
     {
         return $this->logger;
+    }
+
+    public function sendOrEditMessage(string $text, array $opt = []): PromiseInterface
+    {
+        if ($this->getUpdate()->getUpdateType() === CallbackQuery::class) {
+            return $this->editMessageText($text, $opt);
+        }
+        return $this->sendMessage($text, $opt);
     }
 
 }
