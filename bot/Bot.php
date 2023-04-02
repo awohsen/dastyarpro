@@ -62,14 +62,11 @@ class Bot
             $ctx->sendMessage('☑️', Tools::replyKeyboard(replyKeyboardRemove()));
         });
 
-        $bot->onMessage(function (\Components\Context $ctx) {
-            if ($ctx->getMessage()->getChatShared() !== null) {
-                $operation = $ctx->getMessage()->getChatShared();
+        $bot->onChatShared(function (\Components\Context $ctx) {
                 switch ($ctx->getMessage()->getChatShared()->getRequestId()) {
                     case crc32('addChannel'):
                         ChannelsSection::newChannel($ctx, $ctx->getMessage()->getChatShared()->getChatId());
                 }
-            }
         });
     }
 

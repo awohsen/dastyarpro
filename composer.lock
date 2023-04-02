@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/awohsen/zanzara.git",
-                "reference": "c41c8d82caba8f99972bddd0ee8d0e9cf6d4ed98"
+                "reference": "34c6dff240a41c05476fb802b130a5f756c07e36"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/awohsen/zanzara/zipball/c41c8d82caba8f99972bddd0ee8d0e9cf6d4ed98",
-                "reference": "c41c8d82caba8f99972bddd0ee8d0e9cf6d4ed98",
+                "url": "https://api.github.com/repos/awohsen/zanzara/zipball/34c6dff240a41c05476fb802b130a5f756c07e36",
+                "reference": "34c6dff240a41c05476fb802b130a5f756c07e36",
                 "shasum": ""
             },
             "require": {
@@ -80,7 +80,7 @@
                 "source": "https://github.com/awohsen/zanzara/tree/develop",
                 "issues": "https://github.com/awohsen/zanzara/issues"
             },
-            "time": "2023-04-01T05:37:24+00:00"
+            "time": "2023-04-02T11:50:15+00:00"
         },
         {
             "name": "bramus/ansi-php",
