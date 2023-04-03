@@ -77,10 +77,6 @@ class ChannelsSection
                                 yield $ctx->deleteChannelByID($param[1]);
                                 $ctx->answerCallbackQuery(['text' => '🗑 کانال انتخاب شده با موفقیت حذف شد!', 'show_alert' => true]);
 
-                                if ($ctx->getCallbackQuery()->getMessage()->getDate() < time() - 86400){
-                                    $ctx->getUpdate()->setUpdateType(Message::class);
-                                }
-
                                 (new ChannelsSection)($ctx);
                             }
                         }
