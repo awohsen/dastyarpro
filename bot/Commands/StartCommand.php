@@ -12,6 +12,13 @@ class StartCommand
         $ctx->endConversation();
 
         $ctx->sendMessage('welcome =)');
+
+        $ctx->setMyCommands([
+            ['command' => 'ads', 'description' => '💎 پنل تبلیغات'],
+            ['command' => 'channels', 'description' => '📢 مدیریت کانال ها'],
+            ['command' => 'settings', 'description' => '⚙️ تنظیمات ربات'],
+        ], ['scope' => ['type' => 'chat', 'chat_id' => $ctx->getEffectiveUser()->getId()]]);
+
     }
 
     public function customStart(Context $ctx, $param): void

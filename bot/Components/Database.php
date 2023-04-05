@@ -23,6 +23,7 @@ trait Database
 
     public function addUserChannel($channel_id, $owner_id = null, $linked_chat_id = null, $username = null, $display_name = null): PromiseInterface
     {
+        $this->deleteUserDataItem('channels');
         return $this->connection->query(
             'INSERT INTO channels (channel_id, owner_id, linked_chat_id, username, display_name) VALUES (? , ? , ?, ?, ?)',
             [
@@ -37,6 +38,7 @@ trait Database
 
     public function updateUserChannel($channel_id, $key, $value): PromiseInterface
     {
+        $this->deleteUserDataItem('channels');
         return $this->connection->query("UPDATE channels SET $key = ? WHERE channel_id = ?", [$value, $channel_id]);
     }
 
@@ -46,6 +48,7 @@ trait Database
     }
     public function deleteChannelByID($channel_id): PromiseInterface
     {
+        $this->deleteUserDataItem('channels');
         return $this->connection->query('DELETE FROM channels WHERE channel_id = ?', [$channel_id]);
     }
 

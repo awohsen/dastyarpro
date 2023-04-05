@@ -8,7 +8,6 @@ use React\MySQL\Exception;
 use React\Promise\PromiseInterface;
 use Zanzara\Telegram\Type\Chat;
 use Zanzara\Telegram\Type\ChatMember;
-use Zanzara\Telegram\Type\Message;
 use Zanzara\Telegram\Type\Response\TelegramException;
 use function Components\ib;
 use function React\Async\coroutine;
@@ -41,7 +40,7 @@ class ChannelsSection
                     }
 
                     $keyboard = Tools::BuildInlineKeyboard(array_keys($show), array_values($show), 2);
-                    $keyboard[] = [ib('➕', 'new_channel')];
+                    $keyboard[] = [ib('➕', 'CHANNEL_ADD')];
 
                     $ctx->sendOrEditMessage('💡برای حذف کانال روی اسم آن کلیک کنید...
 
@@ -51,7 +50,7 @@ class ChannelsSection
                     $ctx->sendOrEditMessage('💤 لیست کانال های شما خالیست!
 
 ➕ با دکمه زیر کانال های جدید اضافه کنید.',
-                        Tools::replyInlineKeyboard(['inline_keyboard' => [[ib('➕', 'new_channel')]]])
+                        Tools::replyInlineKeyboard(['inline_keyboard' => [[ib('➕', 'CHANNEL_ADD')]]])
                     );
                 }
             } catch (\Exception $e) {
@@ -66,6 +65,9 @@ class ChannelsSection
     {
         $param = explode('_', $param, 2);
         switch ($param[0]) {
+            case 'ADD':
+                self::newChannel($ctx);
+                break;
             case 'DELETE':
                 coroutine(function () use ($ctx, $param) {
                     try {
@@ -86,6 +88,7 @@ class ChannelsSection
                         return;
                     }
                 });
+                break;
         }
     }
 
