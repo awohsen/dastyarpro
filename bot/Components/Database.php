@@ -49,4 +49,29 @@ trait Database
         return $this->connection->query('DELETE FROM channels WHERE channel_id = ?', [$channel_id]);
     }
 
+    public function createUserAd($message_id, array $destinations, int $ad_id = null, array $settings = null, $display_name = null): PromiseInterface
+    {
+        return $this->connection->query(
+            'INSERT INTO ads (ad_id, owner_id, message_id, destinations, settings, display_name) VALUES (? , ? , ?, ?, ?, ?)',
+            [
+                $ad_id ?? rand(111111111 , 999999999),
+                $this->getEffectiveUser()->getId(),
+                $message_id,
+                json_encode($destinations),
+                json_encode($settings ?? ['mode' => 'indirect']),
+                $display_name
+            ]
+        );
+    }
+
+    public function getAdByID($ad_id): PromiseInterface
+    {
+        return $this->connection->query('SELECT * FROM ads WHERE ad_id = ?', [$ad_id]);
+    }
+
+    public function updateUserAd($ad_id, $key, $value): PromiseInterface
+    {
+        return $this->connection->query("UPDATE ads SET $key = ? WHERE ad_id = ?", [$value, $ad_id]);
+    }
+
 }
