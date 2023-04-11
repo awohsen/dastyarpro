@@ -22,9 +22,9 @@ class ZanzaraConfig extends Config
         $this->setConversationTtl(null);
         $this->setCache(Tools::loadCache());
 
-        $this->setApiTelegramUrl('http://127.0.0.1:8580');
-        $this->setUpdateMode(self::REACTPHP_WEBHOOK_MODE);
-        $this->setServerUri('127.0.0.1:8501');
+//        $this->setApiTelegramUrl('http://127.0.0.1:8580');
+//        $this->setUpdateMode(self::REACTPHP_WEBHOOK_MODE);
+//        $this->setServerUri('127.0.0.1:8501');
 
         $this->setParseMode(self::PARSE_MODE_HTML);
     }

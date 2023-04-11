@@ -18,7 +18,7 @@ $logger = new Logger('dastyarpro', [], [], new DateTimeZone('Asia/Tehran'));
 $logger->pushHandler(new StreamHandler(__DIR__ . '/../logs/'.date("Y-m-d").'.log', Logger::DEBUG));
 $logger->pushHandler(
         (new StreamHandler('php://stdout', Logger::DEBUG))
-            ->setFormatter(new ColoredLineFormatter(null, "[%datetime%] %level_name%: %message% \n"))
+            ->setFormatter(new ColoredLineFormatter(null, "%level_name%: %message% \n"))
 );
 $zanzaraConfig->setLogger($logger, true);
 

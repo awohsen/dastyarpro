@@ -60,7 +60,7 @@ class Bot
         });
 
         $bot->onChatMemberUpdated(function (Context $ctx) {
-            var_dump($ctx->getUpdate()->getMyChatMember());
+//            var_dump($ctx->getUpdate()->getMyChatMember());
         });
 
         $bot->onText('لغو', function (Context $ctx) {
@@ -88,13 +88,21 @@ class Bot
                 ]);
             }
 
-            if ($ctx->getMessage()->getReplyToMessage()){
-                $ctx->getUserDataItem('message_data_' . $ctx->getMessage()->getReplyToMessage()->getMessageId())->then(function ($messageData) use ($ctx){
-                    if (isset($messageData['ad_id'])){
+            if ($ctx->getMessage()->getReplyToMessage()) {
+                $ctx->getUserDataItem('message_data_' . $ctx->getMessage()->getReplyToMessage()->getMessageId())->then(function ($messageData) use ($ctx) {
+                    if (isset($messageData['ad_id'])) {
                         AdsSection::replyHandler($ctx, $messageData['ad_id']);
                     }
                 });
             }
+        });
+
+        $bot->middleware(function (Context $ctx, $next) {
+            $before = microtime(true);
+
+            $next($ctx);
+            $result = round((microtime(true) - $before) * 1000, 3);
+            $ctx->log()->info('Request ' . $ctx->getUpdate()->getUpdateId() . ' took ' . $result);
         });
     }
 
