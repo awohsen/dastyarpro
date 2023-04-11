@@ -15,6 +15,36 @@ use function React\Promise\all;
 
 class AdsSection
 {
+    const NAMES = [
+        'darya' => 'دریا',
+        'baran' => 'باران',
+        'berkeh' => 'برکه',
+        'nasim' => 'نسیم',
+        'asal' => 'عسل',
+        'gandom' => 'گندم',
+        'sahra' => 'سحرا',
+        'nahal' => 'نهال',
+        'khorshid' => 'خورشید',
+        'sadaf' => 'صدف',
+        'sahel' => 'ساحل',
+        'setareh' => 'ستاره',
+        'bahar' => 'بهار',
+        'melorin' => 'ملورین',
+        'toranj' => 'ترنج',
+        'aseman' => 'آسمان',
+        'nilofar' => 'نیلوفر',
+        'laleh' => 'لاله',
+        'ladan' => 'لادن',
+        'yas' => 'یاس',
+        'atash' => 'آتش',
+        'toofan' => 'توفان',
+        'alborz' => 'البرز',
+        'shahab' => 'شهاب',
+        'sepand' => 'سپند',
+        'davin' => 'داوین',
+        'sahanad' => 'سهند',
+    ];
+
     public function __invoke(Context $ctx, $param = null): void
     {
         if ($param) {
@@ -208,14 +238,20 @@ class AdsSection
                 $_ENV['ADS_CHANNEL'], $ctx->getEffectiveChat()->getId(), $ctx->getCallbackQuery()->getMessage()->getReplyToMessage()->getMessageId()
             );
 
+            $adDisplayName = array_rand(self::NAMES);
+
             // todo: check if whether some record exist with this $ad_id
-            /** @var QueryResult $result */
-            yield $ctx->createUserAd($adMessage->getMessageId(), $destinations, $ad_id = rand(111111111, 999999999));
+            try {
+                /** @var QueryResult $result */
+                yield $ctx->createUserAd($adMessage->getMessageId(), $destinations, ($ad_id = rand(111111111, 999999999)), null, $adDisplayName);
+            } catch (Exception|\Exception $err) {
+                $ctx->log()->error($err->getMessage());
+            }
             $ctx->setUserDataItem('message_data_' . $ctx->getCallbackQuery()->getMessage()->getReplyToMessage()->getMessageId(), ['ad_id' => $ad_id]);
 
             $ctx->answerCallbackQuery(['text' => '✅ ' . count($destinations) . ' کانال به لیست ارسال این تبلیغ اضافه شد!']);
 
-            $ctx->sendOrEditMessage('🔥 تبلیغ آماده ارسال هست!
+            $ctx->editMessageText('🔥 تبلیغ ' . self::NAMES[$adDisplayName] . ' آماده ارسال هست!
 
 💡 با هر کدوم از گزینه های زیر تنظیمات تبلیغ رو تغییر دهید! 
 ‌',
