@@ -38,16 +38,14 @@ class Context extends \Zanzara\Context
     public function sendOrEditMessage(string $text, array $opt = []): PromiseInterface
     {
         if ($this->getUpdate()->getUpdateType() === CallbackQuery::class) {
-//            if ($this->getCallbackQuery()->getMessage()->getDate() > (time() - 86400)) {
-                return $this->editMessageText($text, $opt);
-//            }
-//            if ($this->getCallbackQuery()->getMessage()->getReplyToMessage() && !isset($opt['reply_to_message_id'])) {
-//                $opt['reply_to_message_id'] = $this->getCallbackQuery()->getMessage()->getReplyToMessage()->getMessageId();
-//                if (!isset($opt['allow_sending_without_reply'])) $opt['allow_sending_without_reply'] = true;
-//            }
+            return $this->editMessageText($text, $opt);
         }
 
         return $this->sendMessage($text, $opt);
     }
 
+    public function answerAlert(string $text): PromiseInterface
+    {
+        return $this->answerCallbackQuery(['show_alert' => true, 'text' => $text]);
+    }
 }

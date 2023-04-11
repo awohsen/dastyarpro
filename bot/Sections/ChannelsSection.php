@@ -77,7 +77,7 @@ class ChannelsSection
                         if (count($channel) !== 0) {
                             if ($channel[0]['owner_id'] == $ctx->getEffectiveUser()->getId()) {
                                 yield $ctx->deleteChannelByID($param[1]);
-                                $ctx->answerCallbackQuery(['text' => '🗑 کانال انتخاب شده با موفقیت حذف شد!', 'show_alert' => true]);
+                                $ctx->answerAlert('🗑 کانال انتخاب شده با موفقیت حذف شد!');
 
                                 (new ChannelsSection)($ctx);
                             }
