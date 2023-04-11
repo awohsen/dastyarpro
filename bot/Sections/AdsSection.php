@@ -4,6 +4,7 @@ namespace Sections;
 
 use Components\Context;
 use Components\Tools;
+use React\MySQL\Exception;
 use React\MySQL\QueryResult;
 use Zanzara\Telegram\Type\CallbackQuery;
 use Zanzara\Telegram\Type\Message;
@@ -50,8 +51,8 @@ class AdsSection
         if ($param) {
             if ($ctx->getMessage()->getReplyToMessage() && count(explode(' ', $param)) === 1) {
                 $messageData = await($ctx->getUserDataItem('message_data_' . $ctx->getMessage()->getReplyToMessage()->getMessageId()));
-                if (isset($messageData['ad_id'])){
-                    $param .= ' '. $messageData['ad_id'];
+                if (isset($messageData['ad_id'])) {
+                    $param .= ' ' . $messageData['ad_id'];
                     $ctx->getUpdate()->setUpdateType(Message::class);
                 }
             }
@@ -78,13 +79,19 @@ class AdsSection
                         self::replyAd($ctx, $param[1]);
                     }
             }
+            return;
         }
+
+        self::adsMods($ctx);
     }
 
     public static function CallbackDataHandler(Context $ctx, $param): void
     {
         $param = explode('_', $param, 2);
         switch ($param[0]) {
+            case 'MODS':
+                self::adsMods($ctx);
+                break;
             case 'ADD':
                 self::newAd($ctx);
                 break;
@@ -106,7 +113,7 @@ class AdsSection
                 }
                 break;
             case 'SCHEDULE':
-                if (isset($param[1])){
+                if (isset($param[1])) {
                     $ctx->answerCallbackQuery();
                     $ctx->sendMessage("⏲ <b>برای شروع و توقف تبلیغات به صورت <a href='https://t.me/TelegramTipsFA/227'>زمان‌بندی شده</a></b> می‌تونید دستورات زیر رو کپی کنید و توی بخش ارسال زمان‌دار تلگرام برای زمان دلخواه تنظیم کنید!
 
@@ -119,11 +126,11 @@ class AdsSection
                 }
                 break;
             case 'REPLY':
-                $ctx->answerCallbackQuery(['text' => '⤴️ برای ریپلی زدن به تبلیغ، کافیه به همون پیام تبلیغ که برای ربات ارسال کردید هر چقدر لازم بود ریپلی بزنید!
-👌ربات خودکار در همه کانال ها ریپلی زده و با توقف تبلیغ، همگی رو حذف میکنه.', 'show_alert' => true]);
+                $ctx->answerAlert('⤴️ برای ریپلی زدن به تبلیغ، کافیه به همون پیام تبلیغ که برای ربات ارسال کردید هر چقدر لازم بود ریپلی بزنید!
+👌ربات خودکار در همه کانال ها ریپلی زده و با توقف تبلیغ، همگی رو حذف میکنه.');
                 break;
             case 'EDIT':
-                if (isset($param[1])){
+                if (isset($param[1])) {
                     $ctx->answerCallbackQuery();
                     $ctx->sendMessage("📝 اگر پست تبلیغ رو دوست ندارین یا اشتباهی هست، جدیدش رو ارسال کنید و بعد دستور زیر رو کپی کنید و بهش ریپلی بزنید:
 
@@ -132,12 +139,43 @@ class AdsSection
 🥱 اگه همین براتون سخته؛ خب یه تبلیغ جدید بسازین!
 ‌");
                 }
+                break;
+            case 'MANAGE':
+                self::manageAd($ctx, $param[1]);
+                break;
+            case 'LIST':
+                self::listAds($ctx);
+                break;
+            case 'STATS':
+                self::adStats($ctx, $param[1]);
+                break;
+            case 'SEND':
+                self::channelAdSend($ctx, $param[1]);
+                break;
+            case 'DELETE':
+                self::channelAdDelete($ctx, $param[1]);
+                break;
+            case 'REMOVE':
+                self::removeAd($ctx, $param[1]);
+                break;
         }
     }
 
     public static function replyHandler(Context $ctx, $param): void
     {
         AdsSection::replyAd($ctx, $param);
+    }
+
+    public static function adsMods(Context $ctx)
+    {
+        $ctx->sendOrEditMessage(
+            'Ads panel: ',
+            [
+                'reply_markup' => ['inline_keyboard' => [
+                    [['text' => 'تبلیغ های فعال', 'callback_data' => 'ADS_LIST']]
+                ]]
+            ]
+        );
     }
 
     public static function newAd(Context $ctx): void
@@ -269,7 +307,7 @@ class AdsSection
     public static function startAd(Context $ctx, $ad_id): void
     {
         coroutine(function () use ($ctx, $ad_id) {
-            $ad = (yield $ctx->getAdByID($ad_id))->resultRows[0];
+            $ad = (yield $ctx->getUserAd($ad_id))->resultRows[0]; //todo check ad exist
             $destinations = json_decode($ad['destinations'], 1);
 
             if ($destinations && count($destinations) >= 1) {
@@ -301,7 +339,7 @@ class AdsSection
     public static function stopAd(Context $ctx, $ad_id): void
     {
         coroutine(function () use ($ctx, $ad_id) {
-            $ad = (yield $ctx->getAdByID($ad_id))->resultRows[0];
+            $ad = (yield $ctx->getUserAd($ad_id))->resultRows[0]; //todo check ad exist
             $destinations = json_decode($ad['destinations'], 1);
 
             if ($destinations && count($destinations) >= 1) {
@@ -332,6 +370,73 @@ class AdsSection
         });
     }
 
+    public static function channelAdDelete($ctx, $param): void
+    {
+        coroutine(function () use ($ctx, $param) {
+            $ex = explode('+', $param, 2);
+            $ad_id = $ex[0];
+            $channel_id = $ex[1];
+
+            $ad = (yield $ctx->getUserAd($ad_id))->resultRows[0]; //todo check ad exist
+            $destinations = json_decode($ad['destinations'], 1);
+
+            $requests = [];
+            $requests[] = $ctx->deleteMessage($channel_id, $destinations[$channel_id]['message_id'])->then(function (bool $true) use ($ctx, $channel_id, &$destinations) {
+                if ($true)
+                    unset($destinations[$channel_id]['message_id']);
+            });
+            if (isset($destinations[$channel_id]['replies'])) {
+                foreach ($destinations[$channel_id]['replies'] as $reply => $reply_id) {
+                    $requests[] = $ctx->deleteMessage($channel_id, $reply_id)->then(function (bool $true) use ($ctx, $channel_id, $reply, &$destinations) {
+                        if ($true)
+                            unset($destinations[$channel_id]['replies'][$reply]);
+                    });
+                }
+            }
+
+            yield all($requests);
+            yield $ctx->updateUserAd($ad_id, 'destinations', json_encode($destinations));
+
+
+            $ctx->answerCallbackQuery(['text' => '✅ با موفقیت از کانال مورد نظر حذف شد!']);
+
+            self::adStats($ctx, $ad_id);
+        });
+    }
+
+    public static function channelAdSend($ctx, $param): void
+    {
+        coroutine(function () use ($ctx, $param) {
+            $ex = explode('+', $param, 2);
+            $ad_id = $ex[0];
+            $channel_id = $ex[1];
+
+            $ad = (yield $ctx->getUserAd($ad_id))->resultRows[0]; //todo check ad exist
+            $destinations = json_decode($ad['destinations'], 1);
+
+            $save = function (Message $sentMessage) use ($ctx, &$destinations) {
+                $destinations[$sentMessage->getChat()->getId()]['message_id'] = $sentMessage->getMessageId();
+            };
+
+            $requests = [];
+            switch (json_decode($ad['settings'], 1)['mode']) {
+                case 'direct':
+                    $requests[] = $ctx->copyMessage($channel_id, $_ENV['ADS_CHANNEL'], $ad['message_id'])->then($save);
+                    break;
+                case 'indirect':
+                    $requests[] = $ctx->forwardMessage($channel_id, $_ENV['ADS_CHANNEL'], $ad['message_id'])->then($save);
+                    break;
+            }
+
+            yield all($requests);
+            yield $ctx->updateUserAd($ad_id, 'destinations', json_encode($destinations));
+
+            $ctx->answerCallbackQuery(['text' => '✅ با موفقیت ارسال شد!']);
+            self::adStats($ctx, $ad_id);
+        });
+
+    }
+
     public static function editAd(Context $ctx, $ad_id): void
     {
         coroutine(function () use ($ctx, $ad_id) {
@@ -358,8 +463,8 @@ class AdsSection
     public static function replyAd(Context $ctx, $ad_id): void
     {
         coroutine(function () use ($ctx, $ad_id) {
-            $ad = (yield $ctx->getAdByID($ad_id))->resultRows[0];
-                $destinations = json_decode($ad['destinations'], 1);
+            $ad = (yield $ctx->getUserAd($ad_id))->resultRows[0]; //todo check ad exist
+            $destinations = json_decode($ad['destinations'], 1);
 
             if ($destinations && count($destinations) >= 1) {
                 $requests = [];
@@ -383,6 +488,109 @@ class AdsSection
                 } catch (\Exception $exception) {
                     var_dump($exception); //fixme idk
                 }
+            }
+        });
+    }
+
+    public static function listAds(Context $ctx): void
+    {
+        coroutine(function () use ($ctx) {
+            try {
+                $ads = (yield $ctx->getUserAds())->resultRows;
+
+                if (isset($ads) && count($ads) >= 1) {
+                    $showNames = [];
+                    $showButtons = [];
+                    foreach ($ads as $ad) {
+                        foreach (json_decode($ad['destinations'], 1) as $destination) {
+                            if (isset($destination['message_id'])) {
+                                $showNames[] = $ad['display_name'] ?? $ad['ad_id'];
+                                $showButtons[] = 'ADS_MANAGE_' . $ad['ad_id'];
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!empty($showNames)) {
+                        $keyboard = Tools::BuildInlineKeyboard($showNames, $showButtons, 2);
+                        $keyboard[] = [ib('🔙', 'ADS_MODS')];
+                        $ctx->sendOrEditMessage('💡برای مشاهده پنل تبلیغ روی اسم آن کلیک کنید...',
+                            Tools::replyKeyboard(['inline_keyboard' => $keyboard]));
+                        return;
+                    }
+                }
+                $ctx->answerAlert('💤 لیست تبلیغ های شما خالیست!');
+            } catch (\Exception $err) {
+                //todo: handle me
+            }
+        });
+    }
+
+    public static function manageAd(Context $ctx, $ad_id): void
+    {
+        coroutine(function () use ($ctx, $ad_id) {
+            $ad = (yield $ctx->getUserAd($ad_id))->resultRows[0]; //todo check ad exist
+            $count = 0;
+            foreach (json_decode($ad['destinations'], 1) as $destination) {
+                if (isset($destination['message_id'])) {
+                    $count++;
+                }
+            }
+            $ctx->sendOrEditMessage('💡 با هر کدوم از گزینه های زیر تنظیمات تبلیغ رو تغییر دهید!
+‌',
+                [
+                    'reply_markup' => ['inline_keyboard' => [
+                        [['text' => "📉 وضعیت ارسال($count) 📈", 'callback_data' => 'ADS_STATS_' . $ad_id]],
+                        [['text' => 'توقف ♻️', 'callback_data' => 'ADS_STOP_' . $ad_id], ['text' => '🚀 شروع', 'callback_data' => 'ADS_START_' . $ad_id]],
+                        [['text' => '⏳ شروع و توقف زمان دار ⌛️', 'callback_data' => 'ADS_SCHEDULE_' . $ad_id]],
+                        [['text' => 'ویرایش تبلیغ ✏️', 'callback_data' => 'ADS_EDIT_' . $ad_id], ['text' => '⤴️ ریپلی به تبلیغ', 'callback_data' => 'ADS_REPLY_' . $ad_id]],
+                        [['text' => '🗑 حذف از لیست ربات 🗑', 'callback_data' => 'ADS_REMOVE_' . $ad_id]],
+                        [['text' => '🔙', 'callback_data' => 'ADS_LIST'], ['text' => '💎 پنل تبلیغات', 'callback_data' => 'ADS_MODS']]
+                    ]]
+                ]
+            );
+        });
+    }
+
+    public static function adStats(Context $ctx, $ad_id): void
+    {
+        coroutine(function () use ($ctx, $ad_id) {
+            $ad = (yield $ctx->getUserAd($ad_id))->resultRows[0]; //todo check ad exist
+            $channels = (yield $ctx->getUserChannels())->resultRows;
+            $keyboard = [];
+            foreach (json_decode($ad['destinations'], 1) as $channel_id => $destination) {
+                $key = array_search($channel_id, array_column($channels, 'channel_id'));
+                $name = $key !== false ? $channels[$key]['display_name'] ?? $channel_id : $channel_id;
+                if (isset($destination['message_id'])) {
+                    $keyboard[] = [
+                        ['text' => '🟢 ' . $name, 'callback_data' => 'ADS_DELETE_' . $ad_id . '+' . $channel_id],
+                        ['text' => 'لینک پست 🔗', 'url' => 'https://t.me/c/' . substr($channel_id, 4) . '/' . $destination['message_id']]
+                    ];
+                } else {
+                    $keyboard[] = [
+                        ['text' => '🔴 ' . $name, 'callback_data' => 'ADS_SEND_' . $ad_id . '+' . $channel_id],
+                        ['text' => 'لینک پست 👀', 'callback_data' => 'NULL']
+                    ];
+                }
+            }
+
+            $keyboard[] = [ib('🔙', 'ADS_MANAGE_' . $ad_id)];
+            $ctx->sendOrEditMessage('💡برای توقف تبلیغ در هر یک از کانال ها، روی اسم آن کلیک کنید...',
+                Tools::replyKeyboard(['inline_keyboard' => $keyboard]));
+
+        });
+    }
+
+    public static function removeAd(Context $ctx, $ad_id): void
+    {
+        coroutine(function () use ($ctx, $ad_id) {
+            try {
+                yield $ctx->deleteUserAd($ad_id);
+
+                $ctx->answerAlert('✅ تبلیغ با موفقیت از لیست حذف شد!');
+                self::adsMods($ctx);
+            } catch (Exception $err) {
+                //todo: catch me
             }
         });
     }
