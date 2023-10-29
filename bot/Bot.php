@@ -17,6 +17,7 @@ use function Components\replyKeyboardRemove;
 class Bot
 {
     protected Zanzara $zanzara;
+    protected ModuleController $moduleController;
 
     public function __construct(Config $zanzaraConfig)
     {
@@ -33,6 +34,9 @@ class Bot
         $this->zanzara->getLoop()->addPeriodicTimer(10, function () {
             Tools::saveCache($this->zanzara->getContainer()->get(CacheInterface::class));
         });
+
+        $log->debug('Setting up module controller...');
+        $this->moduleController = new ModuleController();
     }
 
     private function setupListeners(Zanzara $bot): void
@@ -80,12 +84,7 @@ class Bot
             if ($ctx->getMessage() && !$ctx->getMessage()->getReplyToMessage()) {
                 if ($ctx->getMessage()->isServiceMessage()) return;
 
-                // todo: module selector should reply to the message
-
-                $ctx->sendMessage('ماژول مورد علاقه خود را انتخاب کنید:', [
-                    'reply_to_message_id' => $ctx->getMessage()->getMessageId(),
-                    'reply_markup' => ['inline_keyboard' => [[['text' => 'Ads', 'callback_data' => 'ADS_ADD']]]]
-                ]);
+                $this->moduleController->moduleSelector($ctx);
             }
 
             if ($ctx->getMessage()->getReplyToMessage()) {
