@@ -15,18 +15,22 @@
   "repositories": [
     {
       "type": "vcs",
-      "url": "https://github.com/awohsen/zanzara"
+      "url": "git@github.com:awohsen/zanzara.git"
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:tecnickcom/tc-lib-pdf.git"
     }
   ],
   "require": {
-    "php": "^8.0",
-    "ext-json": "*",
+    "php": "^8.1",
     "badfarm/zanzara": "dev-develop",
-    "react/async": "^4.0",
+    "react/async": "^4.1",
     "react/mysql": "0.6.x-dev",
-    "vlucas/phpdotenv": "^5.5",
-    "monolog/monolog": "^2.9",
-    "bramus/monolog-colored-line-formatter": "~3.0.0"
+    "symfony/dotenv": "^6.3",
+    "monolog/monolog": "^3.5",
+    "bramus/monolog-colored-line-formatter": "^3.1",
+    "tecnickcom/tc-lib-pdf": "dev-main"
   },
   "config": {
     "allow-plugins": {
